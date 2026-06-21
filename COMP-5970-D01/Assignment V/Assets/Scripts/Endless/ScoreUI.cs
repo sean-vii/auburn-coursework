@@ -44,14 +44,25 @@ public class ScoreUI : MonoBehaviour
         scaler.referenceResolution = new Vector2(1920f, 1080f);
         canvasGo.AddComponent<GraphicRaycaster>();
 
-        // --- Live score (top-left) -----------------------------------------
-        scoreText = MakeText(canvasGo.transform, "ScoreText", 32, TextAnchor.UpperLeft);
+        // --- Live score (top-left, on an opaque black panel) ---------------
+        GameObject scorePanel = new GameObject("ScorePanel");
+        scorePanel.transform.SetParent(canvasGo.transform, false);
+        Image scoreBg = scorePanel.AddComponent<Image>();
+        scoreBg.color = Color.black; // opaque
+        RectTransform panelRtScore = scoreBg.rectTransform;
+        panelRtScore.anchorMin = new Vector2(0f, 1f);
+        panelRtScore.anchorMax = new Vector2(0f, 1f);
+        panelRtScore.pivot = new Vector2(0f, 1f);
+        panelRtScore.anchoredPosition = new Vector2(20f, -20f);
+        panelRtScore.sizeDelta = new Vector2(360f, 190f);
+
+        // Text fills the panel with a little padding; drawn on top as a child.
+        scoreText = MakeText(scorePanel.transform, "ScoreText", 32, TextAnchor.UpperLeft);
         RectTransform scoreRt = scoreText.rectTransform;
-        scoreRt.anchorMin = new Vector2(0f, 1f);
-        scoreRt.anchorMax = new Vector2(0f, 1f);
-        scoreRt.pivot = new Vector2(0f, 1f);
-        scoreRt.anchoredPosition = new Vector2(30f, -24f);
-        scoreRt.sizeDelta = new Vector2(900f, 200f);
+        scoreRt.anchorMin = Vector2.zero;
+        scoreRt.anchorMax = Vector2.one;
+        scoreRt.offsetMin = new Vector2(18f, 14f);
+        scoreRt.offsetMax = new Vector2(-18f, -14f);
 
         // --- Game-over panel ------------------------------------------------
         gameOverPanel = new GameObject("GameOverPanel");
