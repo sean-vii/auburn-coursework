@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.EventSystems;
 
 /// <summary>
 /// Single entry point for the endless mode. Sits on one GameObject in the
@@ -20,7 +19,6 @@ public class GameBootstrap : MonoBehaviour
         CreateCamera(player);
         PlatformGenerator generator = CreateGenerator(player);
         CreateUI();
-        EnsureEventSystem();
 
         gameManager.Init(player, PlatformGenerator.SectionLength);
     }
@@ -91,17 +89,6 @@ public class GameBootstrap : MonoBehaviour
         GameObject uiGo = new GameObject("UI");
         ScoreUI ui = uiGo.AddComponent<ScoreUI>();
         ui.Build();
-    }
-
-    void EnsureEventSystem()
-    {
-        if (FindAnyObjectByType<EventSystem>() != null)
-        {
-            return;
-        }
-        GameObject es = new GameObject("EventSystem");
-        es.AddComponent<EventSystem>();
-        es.AddComponent<StandaloneInputModule>();
     }
 
     // ----------------------------------------------------------------------

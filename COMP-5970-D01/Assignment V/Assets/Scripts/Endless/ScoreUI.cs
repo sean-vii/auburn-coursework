@@ -1,16 +1,20 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 /// <summary>
 /// Builds and drives the runtime UI: a live survival-score readout while playing
 /// and a game-over panel with the final score and a restart button. Uses uGUI
 /// Text with a dynamically created OS font so no font asset import is required.
+/// The restart button is hit-tested manually against the new Input System mouse,
+/// so it works without an EventSystem / input module being configured.
 /// </summary>
 public class ScoreUI : MonoBehaviour
 {
     Text scoreText;
     GameObject gameOverPanel;
     Text finalText;
+    RectTransform restartRect;
     Font font;
 
     public void Build()
@@ -67,21 +71,13 @@ public class ScoreUI : MonoBehaviour
         btnGo.transform.SetParent(parent, false);
         Image img = btnGo.AddComponent<Image>();
         img.color = new Color(0.25f, 0.7f, 0.35f, 1f);
-        Button button = btnGo.AddComponent<Button>();
-        button.onClick.AddListener(() =>
-        {
-            if (GameManager.Instance != null)
-            {
-                GameManager.Instance.Restart();
-            }
-        });
 
-        RectTransform rt = img.rectTransform;
-        rt.anchorMin = new Vector2(0.5f, 0.5f);
-        rt.anchorMax = new Vector2(0.5f, 0.5f);
-        rt.pivot = new Vector2(0.5f, 0.5f);
-        rt.anchoredPosition = new Vector2(0f, -120f);
-        rt.sizeDelta = new Vector2(360f, 90f);
+        restartRect = img.rectTransform;
+        restartRect.anchorMin = new Vector2(0.5f, 0.5f);
+        restartRect.anchorMax = new Vector2(0.5f, 0.5f);
+        restartRect.pivot = new Vector2(0.5f, 0.5f);
+        restartRect.anchoredPosition = new Vector2(0f, -120f);
+        restartRect.sizeDelta = new Vector2(360f, 90f);
 
         Text label = MakeText(btnGo.transform, "Label", 32, TextAnchor.MiddleCenter);
         label.text = "RESTART";
@@ -121,15 +117,36 @@ public class ScoreUI : MonoBehaviour
             "\n<b>Distance:</b> " + Mathf.FloorToInt(gm.Distance) + "m" +
             "\n<b>Sections:</b> " + gm.SectionsPassed;
 
-        if (gm.IsGameOver && !gameOverPanel.activeSelf)
+        if (gm.IsGameOver)
         {
-            gameOverPanel.SetActive(true);
-            finalText.text =
-                "<b>GAME OVER</b>\n\n" +
-                "Score: " + gm.Score + "\n" +
-                "Distance: " + Mathf.FloorToInt(gm.Distance) + "m   " +
-                "Time: " + Mathf.FloorToInt(gm.TimeSurvived) + "s\n\n" +
-                "<size=26>Press R or click Restart</size>";
+            if (!gameOverPanel.activeSelf)
+            {
+                gameOverPanel.SetActive(true);
+                finalText.text =
+                    "<b>GAME OVER</b>\n\n" +
+                    "Score: " + gm.Score + "\n" +
+                    "Distance: " + Mathf.FloorToInt(gm.Distance) + "m   " +
+                    "Time: " + Mathf.FloorToInt(gm.TimeSurvived) + "s\n\n" +
+                    "<size=26>Press R or click Restart</size>";
+            }
+
+            HandleRestartClick(gm);
+        }
+    }
+
+    void HandleRestartClick(GameManager gm)
+    {
+        Mouse mouse = Mouse.current;
+        if (mouse == null || !mouse.leftButton.wasPressedThisFrame)
+        {
+            return;
+        }
+
+        Vector2 screenPoint = mouse.position.ReadValue();
+        // Canvas is Screen Space - Overlay, so the camera argument is null.
+        if (RectTransformUtility.RectangleContainsScreenPoint(restartRect, screenPoint, null))
+        {
+            gm.Restart();
         }
     }
 }

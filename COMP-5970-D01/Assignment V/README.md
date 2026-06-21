@@ -15,9 +15,9 @@ last until you fall off and restart.
 2. In **Unity Hub → Add → Add project from disk**, select this `Assignment V` folder.
 3. Open with Unity **6000.4.8f1** (or the closest 6000.4.x — Hub may offer a safe
    minor-patch upgrade).
-4. Open **`Assets/Scenes/EndlessMode.unity`** and press **Play**.
-   (`EndlessMode` is also set as the first scene in Build Settings, so a built player
-   starts there directly.)
+4. Open **`Assets/Scenes/GameScene.unity`** and press **Play**.
+   (`GameScene` is the endless game and is the first scene in Build Settings, so a
+   built player starts there directly.)
 
 > Only `Assets/`, `Packages/`, and `ProjectSettings/` are tracked. Unity regenerates
 > `Library/`, `Temp/`, and `Logs/` automatically on first open.
@@ -49,7 +49,7 @@ on the platforms.
 ## How it is built
 
 The endless mode is **constructed entirely in code** at runtime so the project is
-self-contained and reproducible. `EndlessMode.unity` contains a single
+self-contained and reproducible. `GameScene.unity` contains a single
 `GameController` object running `GameBootstrap.cs`, which spawns the player, the
 follow camera (reusing the class's `CameraFollow`), lighting, the platform generator,
 the game manager, and the UI when you press Play.
@@ -57,9 +57,9 @@ the game manager, and the UI when you press Play.
 ```
 Assets/
   Scenes/
-    EndlessMode.unity     The endless survival game (open this)
-    GameScene.unity        Original Module 5 game (kept for reference)
-    MainMenu.unity         Original menu (kept for reference)
+    GameScene.unity        The endless survival game (open this)
+    MainMenu.unity         Original menu (Play loads GameScene)
+    SampleScene.unity      Empty template scene (unused)
   Scripts/
     Endless/
       GameBootstrap.cs     Builds the whole scene at runtime

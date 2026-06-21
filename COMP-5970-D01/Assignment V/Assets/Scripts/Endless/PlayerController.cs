@@ -1,10 +1,12 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 /// <summary>
 /// Endless rolling-ball controller. The ball is driven forward automatically and
 /// the player steers left/right. Hazards can temporarily change the player's speed
 /// or invert their steering, and falling below <see cref="fallY"/> is a lose
-/// condition. Uses the classic Input API (project is set to "Both" input handling).
+/// condition. Reads input through the new Input System (<see cref="Keyboard"/>) so
+/// it works regardless of the project's active input handling setting.
 /// </summary>
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerController : MonoBehaviour
@@ -95,11 +97,7 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        float h = 0f;
-        if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow)) h -= 1f;
-        if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow)) h += 1f;
-        h *= controlSign;
-
+        float h = ReadSteerInput() * controlSign;
         currentSide = Mathf.SmoothDamp(currentSide, h, ref sideVel, 0.1f);
 
         Vector3 velocity = new Vector3(
@@ -108,5 +106,19 @@ public class PlayerController : MonoBehaviour
             forwardSpeed * speedMultiplier
         );
         rb.linearVelocity = velocity;
+    }
+
+    float ReadSteerInput()
+    {
+        Keyboard kb = Keyboard.current;
+        if (kb == null)
+        {
+            return 0f;
+        }
+
+        float h = 0f;
+        if (kb.aKey.isPressed || kb.leftArrowKey.isPressed) h -= 1f;
+        if (kb.dKey.isPressed || kb.rightArrowKey.isPressed) h += 1f;
+        return h;
     }
 }

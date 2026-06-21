@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
 /// <summary>
@@ -45,7 +46,8 @@ public class GameManager : MonoBehaviour
         if (IsGameOver)
         {
             // Restart option after losing (also exposed as a UI button by ScoreUI).
-            if (Input.GetKeyDown(KeyCode.R))
+            Keyboard kb = Keyboard.current;
+            if (kb != null && kb.rKey.wasPressedThisFrame)
             {
                 Restart();
             }
