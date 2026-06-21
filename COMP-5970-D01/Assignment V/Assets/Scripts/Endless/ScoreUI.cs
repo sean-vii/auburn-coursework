@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -11,11 +12,20 @@ using UnityEngine.UI;
 /// </summary>
 public class ScoreUI : MonoBehaviour
 {
+    public static ScoreUI Instance { get; private set; }
+
     Text scoreText;
     GameObject gameOverPanel;
     Text finalText;
     RectTransform restartRect;
+    Canvas hudCanvas;
+    RectTransform hudRect;
     Font font;
+
+    void Awake()
+    {
+        Instance = this;
+    }
 
     public void Build()
     {
@@ -26,6 +36,8 @@ public class ScoreUI : MonoBehaviour
         GameObject canvasGo = new GameObject("HUD Canvas");
         canvasGo.transform.SetParent(transform, false);
         Canvas canvas = canvasGo.AddComponent<Canvas>();
+        hudCanvas = canvas;
+        hudRect = canvasGo.GetComponent<RectTransform>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         CanvasScaler scaler = canvasGo.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
@@ -147,6 +159,92 @@ public class ScoreUI : MonoBehaviour
         if (RectTransformUtility.RectangleContainsScreenPoint(restartRect, screenPoint, null))
         {
             gm.Restart();
+        }
+    }
+
+    // --- Floating effect text ----------------------------------------------
+
+    /// <summary>
+    /// Pops a short label above the ball that fades/slides in then drifts up and
+    /// fades out. Called by hazards whenever an effect is applied to the player.
+    /// </summary>
+    public void ShowEffect(string message, Color color)
+    {
+        if (hudCanvas == null || font == null)
+        {
+            return;
+        }
+
+        Vector2 anchored = GetBallAnchoredPosition();
+
+        GameObject go = new GameObject("Effect");
+        go.transform.SetParent(hudCanvas.transform, false);
+
+        Text text = go.AddComponent<Text>();
+        text.font = font;
+        text.fontSize = 44;
+        text.fontStyle = FontStyle.Bold;
+        text.color = color;
+        text.alignment = TextAnchor.MiddleCenter;
+        text.horizontalOverflow = HorizontalWrapMode.Overflow;
+        text.verticalOverflow = VerticalWrapMode.Overflow;
+        text.supportRichText = true;
+        text.text = message;
+
+        RectTransform rt = text.rectTransform;
+        rt.anchorMin = new Vector2(0.5f, 0.5f);
+        rt.anchorMax = new Vector2(0.5f, 0.5f);
+        rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.sizeDelta = new Vector2(500f, 100f);
+
+        CanvasGroup group = go.AddComponent<CanvasGroup>();
+        StartCoroutine(AnimateEffect(rt, group, anchored));
+    }
+
+    Vector2 GetBallAnchoredPosition()
+    {
+        GameManager gm = GameManager.Instance;
+        Camera cam = Camera.main;
+        if (gm != null && gm.Player != null && cam != null && hudRect != null)
+        {
+            Vector3 worldAbove = gm.Player.position + Vector3.up * 1.6f;
+            Vector3 screen = cam.WorldToScreenPoint(worldAbove);
+            if (screen.z > 0f)
+            {
+                Vector2 local;
+                if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                        hudRect, screen, null, out local))
+                {
+                    return local;
+                }
+            }
+        }
+        return new Vector2(0f, 120f); // fallback: just above centre
+    }
+
+    IEnumerator AnimateEffect(RectTransform rt, CanvasGroup group, Vector2 start)
+    {
+        const float duration = 1.1f;
+        const float rise = 80f;
+        float t = 0f;
+
+        while (rt != null && t < duration)
+        {
+            t += Time.deltaTime;
+            float k = t / duration;
+
+            // Slide up over the lifetime.
+            rt.anchoredPosition = start + new Vector2(0f, Mathf.Lerp(0f, rise, k));
+
+            // Fade in quickly, then fade out.
+            group.alpha = (k < 0.15f) ? (k / 0.15f) : (1f - (k - 0.15f) / 0.85f);
+
+            yield return null;
+        }
+
+        if (rt != null)
+        {
+            Destroy(rt.gameObject);
         }
     }
 }

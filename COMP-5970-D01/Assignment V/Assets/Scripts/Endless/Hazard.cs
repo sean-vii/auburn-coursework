@@ -46,6 +46,7 @@ public class Hazard : MonoBehaviour
         switch (type)
         {
             case HazardType.Kill:
+                ShowEffect("CRASH!", new Color(0.95f, 0.30f, 0.30f));
                 if (GameManager.Instance != null)
                 {
                     GameManager.Instance.GameOver();
@@ -57,6 +58,7 @@ public class Hazard : MonoBehaviour
                 {
                     player.SetSpeedMultiplier(slowMultiplier, slowDuration);
                 }
+                ShowEffect("SLOW!", new Color(0.40f, 0.70f, 1f));
                 break;
 
             case HazardType.Bumper:
@@ -65,6 +67,7 @@ public class Hazard : MonoBehaviour
                     float dir = (other.transform.position.x >= transform.position.x) ? 1f : -1f;
                     player.Push(new Vector3(dir * pushSpeed, 3f, 0f));
                 }
+                ShowEffect("BUMP!", new Color(1f, 0.85f, 0.30f));
                 break;
 
             case HazardType.Reverse:
@@ -72,6 +75,7 @@ public class Hazard : MonoBehaviour
                 {
                     player.ApplyReverseControls(reverseDuration);
                 }
+                ShowEffect("REVERSED!", new Color(0.85f, 0.45f, 1f));
                 break;
 
             case HazardType.Boost:
@@ -79,8 +83,17 @@ public class Hazard : MonoBehaviour
                 {
                     player.SetSpeedMultiplier(boostMultiplier, boostDuration);
                 }
+                ShowEffect("BOOST!", new Color(0.40f, 1f, 0.50f));
                 Destroy(gameObject); // consume the one-shot bonus
                 break;
+        }
+    }
+
+    static void ShowEffect(string message, Color color)
+    {
+        if (ScoreUI.Instance != null)
+        {
+            ScoreUI.Instance.ShowEffect(message, color);
         }
     }
 }

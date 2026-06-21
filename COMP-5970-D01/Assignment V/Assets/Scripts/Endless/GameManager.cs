@@ -18,6 +18,9 @@ public class GameManager : MonoBehaviour
     public float TimeSurvived { get; private set; }
     public int SectionsPassed { get; private set; }
 
+    /// <summary>The player transform (used by the UI to anchor floating text).</summary>
+    public Transform Player => player;
+
     Transform player;
     float startZ;
     float sectionLength = 20f;

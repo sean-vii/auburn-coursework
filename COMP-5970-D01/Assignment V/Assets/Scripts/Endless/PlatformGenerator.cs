@@ -3,9 +3,12 @@ using UnityEngine;
 
 /// <summary>
 /// Endless procedural platform generator. Spawns platform sections ahead of the
-/// player and recycles (destroys) sections that fall behind. Four distinct
-/// platform "prefabs" (built procedurally from primitives) are used, and hazards
-/// from <see cref="Hazard"/> are stamped onto them with rising difficulty.
+/// player and recycles (destroys) sections that fall behind. Sections form a
+/// continuous, always-connected lane: the walkable floor always covers a column
+/// around <see cref="laneCenter"/>, which only drifts a little per section, so
+/// consecutive platforms always overlap. Four distinct platform "prefabs" (built
+/// procedurally) provide variety, and hazards from <see cref="Hazard"/> are stamped
+/// onto the real floor with rising difficulty.
 /// </summary>
 public class PlatformGenerator : MonoBehaviour
 {
@@ -15,12 +18,15 @@ public class PlatformGenerator : MonoBehaviour
     public float spawnAhead = 90f;
     public float despawnBehind = 30f;
 
-    [Header("Difficulty")]
-    public int safeSections = 2;   // first sections are flat with no hazards
+    [Header("Difficulty / layout")]
+    public int safeSections = 2;     // first sections are flat with no hazards
+    public float laneBound = 6f;     // how far the lane may drift from centre
+    public float maxDrift = 1.2f;    // lateral drift per section (small => connected)
 
     Transform player;
     float nextStartZ;
     int sectionIndex;
+    float laneCenter;
 
     class Section
     {
@@ -30,7 +36,6 @@ public class PlatformGenerator : MonoBehaviour
 
     readonly List<Section> sections = new List<Section>();
 
-    // Cached materials so we are not allocating one per object.
     Material matFloorA, matFloorB, matFloorC, matFloorD;
     Material matKill, matSlow, matBumper, matReverse, matBoost;
 
@@ -38,6 +43,7 @@ public class PlatformGenerator : MonoBehaviour
     public void Initialize(Transform playerTransform)
     {
         player = playerTransform;
+        laneCenter = 0f;
         BuildMaterials();
 
         nextStartZ = -SectionLength;   // one section behind the player's start
@@ -98,49 +104,42 @@ public class PlatformGenerator : MonoBehaviour
         root.transform.SetParent(transform, false);
         root.transform.position = new Vector3(0f, 0f, startZ);
 
-        // Variant 0 is reserved for the safe starting runway; afterwards pick at random.
+        // Drift the lane only after the safe runway. The small step keeps the
+        // walkable column of consecutive sections overlapping (always connected).
+        if (index >= safeSections)
+        {
+            laneCenter = Mathf.Clamp(laneCenter + Random.Range(-maxDrift, maxDrift), -laneBound, laneBound);
+        }
+
         int variant = (index < safeSections) ? 0 : Random.Range(0, 4);
 
+        float width;
+        Material mat;
         switch (variant)
         {
-            case 0: BuildFlat(root.transform, matFloorA); break;
-            case 1: BuildNarrow(root.transform, matFloorB); break;
-            case 2: BuildSplit(root.transform, matFloorC); break;
-            default: BuildOffset(root.transform, matFloorD); break;
+            case 1: width = 4f; mat = matFloorB; break;   // narrow lane
+            case 2: width = 3f; mat = matFloorC; break;   // plank
+            case 3: width = 5f; mat = matFloorD; break;   // lane + detached side ledge
+            default: width = 10f; mat = matFloorA; break; // wide lane
+        }
+
+        // Main walkable floor: always centred on laneCenter so there is a path.
+        AddFloor(root.transform, laneCenter, width, mat);
+
+        // The "split" variant adds a separate ledge to one side with a visible gap.
+        if (variant == 3)
+        {
+            float side = (Random.value < 0.5f) ? -1f : 1f;
+            float ledgeCenter = Mathf.Clamp(laneCenter + side * (width * 0.5f + 3.5f), -laneBound - 4f, laneBound + 4f);
+            AddFloor(root.transform, ledgeCenter, 3f, mat);
         }
 
         if (index >= safeSections)
         {
-            AddHazards(root.transform, variant, index);
+            AddHazards(root.transform, index, laneCenter, width);
         }
 
         sections.Add(new Section { root = root, endZ = startZ + SectionLength });
-    }
-
-    // --- Four platform variants --------------------------------------------
-
-    void BuildFlat(Transform parent, Material mat)
-    {
-        AddFloor(parent, 0f, 10f, mat);
-    }
-
-    void BuildNarrow(Transform parent, Material mat)
-    {
-        AddFloor(parent, 0f, 4f, mat);
-    }
-
-    // Two side strips with a deadly gap down the middle.
-    void BuildSplit(Transform parent, Material mat)
-    {
-        AddFloor(parent, -3.5f, 3f, mat);
-        AddFloor(parent, 3.5f, 3f, mat);
-    }
-
-    // A medium lane shoved to one side, forcing the player to steer over.
-    void BuildOffset(Transform parent, Material mat)
-    {
-        float offset = (Random.value < 0.5f) ? -3f : 3f;
-        AddFloor(parent, offset, 5f, mat);
     }
 
     void AddFloor(Transform parent, float centerX, float width, Material mat)
@@ -154,29 +153,35 @@ public class PlatformGenerator : MonoBehaviour
         floor.GetComponent<Renderer>().sharedMaterial = mat;
     }
 
-    // --- Hazard placement --------------------------------------------------
+    // --- Hazard placement (always on the real floor) -----------------------
 
-    void AddHazards(Transform parent, int variant, int index)
+    void AddHazards(Transform parent, int index, float center, float width)
     {
-        // Valid lane centers depend on the variant so hazards land on real floor.
-        float[] lanes;
-        switch (variant)
-        {
-            case 1: lanes = new float[] { -1f, 0f, 1f }; break;       // narrow
-            case 2: lanes = new float[] { -3.5f, 3.5f }; break;       // split strips
-            case 3: lanes = new float[] { -3f, 3f }; break;           // offset (either side it might be)
-            default: lanes = new float[] { -3f, 0f, 3f }; break;      // flat
-        }
+        int count = (width <= 4f) ? 1 : Mathf.Clamp(1 + index / 6, 1, 3);
 
-        int count = Mathf.Clamp(1 + index / 5, 1, 3);
+        // Keep hazards clear of the very edge so they sit fully on the platform.
+        float usableHalf = Mathf.Max(0.2f, width * 0.5f - 1.0f);
+
         float zStart = 4f;
         float zStep = (SectionLength - 8f) / count;
 
         for (int i = 0; i < count; i++)
         {
             float z = zStart + zStep * i + Random.Range(0f, zStep * 0.4f);
-            float x = lanes[Random.Range(0, lanes.Length)];
             Hazard.HazardType type = PickHazard();
+
+            float x;
+            if (type == Hazard.HazardType.Kill && width <= 5f)
+            {
+                // On tight lanes, push the lethal block to one side so a gap remains.
+                float side = (Random.value < 0.5f) ? -1f : 1f;
+                x = center + side * usableHalf;
+            }
+            else
+            {
+                x = center + Random.Range(-usableHalf, usableHalf);
+            }
+
             SpawnHazard(parent, type, new Vector3(x, 0f, z));
         }
     }
@@ -243,7 +248,7 @@ public class PlatformGenerator : MonoBehaviour
     // Flat trigger pad the ball rolls across.
     void MakePad(GameObject go, Collider col, ref Vector3 localPos)
     {
-        go.transform.localScale = new Vector3(2.5f, 0.15f, 2.5f);
+        go.transform.localScale = new Vector3(2.0f, 0.15f, 2.0f);
         localPos.y = 0.08f;
         col.isTrigger = true;
     }
