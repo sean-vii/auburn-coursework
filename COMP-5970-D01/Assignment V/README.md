@@ -38,7 +38,7 @@ on the platforms.
 | Requirement | Implementation |
 | ----------- | -------------- |
 | Endless procedural platform generation | `PlatformGenerator.cs` streams sections ahead of the player and **destroys** sections that fall behind. |
-| At least 4 platform prefabs | Four distinct section variants built procedurally: **Flat**, **Narrow**, **Split** (gap down the middle), and **Offset** lane. |
+| At least 4 platform prefabs | Four distinct section variants built procedurally along a continuous drifting lane: **Wide**, **Narrow**, **Plank**, and **Split** (lane + detached side ledge). |
 | At least 3 hazard types (besides falling off) | `Hazard.cs`: **Kill** (instant game over), **Slow** field, **Bumper** (knocks you sideways), and **Reverse** (inverts steering) — plus a bonus **Boost** pad. |
 | Survival score | `GameManager.cs` blends distance travelled, time survived, and sections passed. |
 | Score on screen (UI text) | `ScoreUI.cs` draws a live uGUI HUD readout. |
@@ -67,9 +67,23 @@ Assets/
       PlayerController.cs   Rolling-ball movement + hazard effects
       PlatformGenerator.cs  Procedural spawn/recycle, 4 variants, hazard placement
       Hazard.cs            Kill / Slow / Bumper / Reverse / Boost behaviours
-      ScoreUI.cs           Runtime HUD + game-over panel + restart button
+      ScoreUI.cs           Runtime HUD + game-over panel + restart button + effect text
+      KenneyAssets.cs      Loads/instantiates the Kenney models, fitted to colliders
     CameraFollow.cs        Reused from the class version
     (PlayerMovement.cs, DeathZone.cs, SpeedBoostZone.cs, MainMenu.cs — original class scripts)
+  KenneyPlatformer/
+    Resources/             Kenney models (block-grass, spike-block, spring, coin-gold) + palette
+    License.txt            Kenney CC0 license
 ```
 
-Base art/template assets are from the Module 5 Sky Roller skeleton project.
+## Art
+
+3D models are from the **[Kenney Platformer Kit](https://kenney.nl/assets/platformer-kit)**
+(CC0 / public domain). Every model shares one palette texture, so a single URP material
+renders them all. The generator instantiates these models at runtime, fitted to the
+gameplay colliders: grass blocks for the platforms, spikes for lethal hazards, a spring
+for the bumper, and a spinning coin for the boost pickup. Gameplay (collisions, sizes,
+behaviours) is unchanged — only the visuals. If the models are ever missing, the game
+falls back to coloured primitives automatically.
+
+Base template assets are from the Module 5 Sky Roller skeleton project.

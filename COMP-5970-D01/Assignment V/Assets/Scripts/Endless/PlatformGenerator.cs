@@ -27,6 +27,7 @@ public class PlatformGenerator : MonoBehaviour
     float nextStartZ;
     int sectionIndex;
     float laneCenter;
+    bool useKenney;
 
     class Section
     {
@@ -45,6 +46,7 @@ public class PlatformGenerator : MonoBehaviour
         player = playerTransform;
         laneCenter = 0f;
         BuildMaterials();
+        useKenney = KenneyAssets.Available;
 
         nextStartZ = -SectionLength;   // one section behind the player's start
         FillAhead();
@@ -144,13 +146,17 @@ public class PlatformGenerator : MonoBehaviour
 
     void AddFloor(Transform parent, float centerX, float width, Material mat)
     {
-        GameObject floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        floor.name = "Floor";
+        GameObject floor = new GameObject("Floor");
         floor.transform.SetParent(parent, false);
         // Section parent sits at the section's start; lay the floor along +Z.
         floor.transform.localPosition = new Vector3(centerX, -0.5f, SectionLength * 0.5f);
-        floor.transform.localScale = new Vector3(width, 1f, SectionLength);
-        floor.GetComponent<Renderer>().sharedMaterial = mat;
+
+        // Gameplay collider is an exact box; the visual is fitted to match.
+        BoxCollider col = floor.AddComponent<BoxCollider>();
+        col.size = new Vector3(width, 1f, SectionLength);
+
+        MakeVisual(floor.transform, "block-grass", Vector3.zero,
+                   new Vector3(width, 1f, SectionLength), false, mat);
     }
 
     // --- Hazard placement (always on the real floor) -----------------------
@@ -199,57 +205,85 @@ public class PlatformGenerator : MonoBehaviour
 
     void SpawnHazard(Transform parent, Hazard.HazardType type, Vector3 localPos)
     {
-        GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        go.name = "Hazard_" + type;
+        GameObject go = new GameObject("Hazard_" + type);
         go.transform.SetParent(parent, false);
 
-        Renderer renderer = go.GetComponent<Renderer>();
-        Collider col = go.GetComponent<Collider>();
+        // The gameplay collider is an explicit box; visuals are added separately.
+        BoxCollider col = go.AddComponent<BoxCollider>();
         Hazard hazard = go.AddComponent<Hazard>();
         hazard.type = type;
 
         switch (type)
         {
             case Hazard.HazardType.Kill:
-                // Solid upright obstacle the player crashes into.
-                go.transform.localScale = new Vector3(1.4f, 1.6f, 1.4f);
-                localPos.y = 0.8f;
+                // Solid spikes the player crashes into.
+                col.size = new Vector3(1.4f, 1.6f, 1.4f);
                 col.isTrigger = false;
-                renderer.sharedMaterial = matKill;
+                localPos.y = 0.8f;
+                go.transform.localPosition = localPos;
+                MakeVisual(go.transform, "spike-block", Vector3.zero,
+                           new Vector3(1.4f, 1.6f, 1.4f), true, matKill);
                 break;
 
             case Hazard.HazardType.Bumper:
-                // Upright pad that knocks the player aside on contact.
-                go.transform.localScale = new Vector3(1.2f, 1.2f, 1.2f);
-                localPos.y = 0.6f;
+                // Spring that knocks the player aside on contact.
+                col.size = new Vector3(1.2f, 1.4f, 1.2f);
                 col.isTrigger = true;
-                renderer.sharedMaterial = matBumper;
-                break;
-
-            case Hazard.HazardType.Slow:
-                renderer.sharedMaterial = matSlow;
-                MakePad(go, col, ref localPos);
-                break;
-
-            case Hazard.HazardType.Reverse:
-                renderer.sharedMaterial = matReverse;
-                MakePad(go, col, ref localPos);
+                localPos.y = 0.7f;
+                go.transform.localPosition = localPos;
+                MakeVisual(go.transform, "spring", Vector3.zero,
+                           new Vector3(1.2f, 1.4f, 1.2f), true, matBumper);
                 break;
 
             case Hazard.HazardType.Boost:
-                renderer.sharedMaterial = matBoost;
-                MakePad(go, col, ref localPos);
+                // Collectible coin that grants a speed boost (spins via Hazard).
+                col.size = new Vector3(1.6f, 1.4f, 1.6f);
+                col.isTrigger = true;
+                localPos.y = 0.6f;
+                go.transform.localPosition = localPos;
+                MakeVisual(go.transform, "coin-gold", Vector3.zero,
+                           new Vector3(1.4f, 1.4f, 1.4f), true, matBoost);
+                break;
+
+            case Hazard.HazardType.Slow:
+                MakePad(go, col, matSlow, ref localPos);
+                break;
+
+            case Hazard.HazardType.Reverse:
+                MakePad(go, col, matReverse, ref localPos);
                 break;
         }
-
-        go.transform.localPosition = localPos;
     }
 
-    // Flat trigger pad the ball rolls across.
-    void MakePad(GameObject go, Collider col, ref Vector3 localPos)
+    // Flat coloured trigger pad the ball rolls across (status-effect zones).
+    void MakePad(GameObject go, BoxCollider col, Material mat, ref Vector3 localPos)
     {
-        go.transform.localScale = new Vector3(2.0f, 0.15f, 2.0f);
-        localPos.y = 0.08f;
+        col.size = new Vector3(2.0f, 0.3f, 2.0f);
         col.isTrigger = true;
+        localPos.y = 0.1f;
+        go.transform.localPosition = localPos;
+        MakeVisual(go.transform, "", Vector3.zero, new Vector3(2.0f, 0.15f, 2.0f), false, mat);
+    }
+
+    // Builds a piece's visual: a fitted Kenney model when available, otherwise a
+    // primitive cube with a solid colour (also used for the flat effect pads).
+    void MakeVisual(Transform parent, string modelName, Vector3 localCenter, Vector3 size, bool uniform, Material fallback)
+    {
+        if (useKenney && !string.IsNullOrEmpty(modelName))
+        {
+            GameObject model = KenneyAssets.SpawnFitted(modelName, parent, localCenter, size, uniform);
+            if (model != null)
+            {
+                return;
+            }
+        }
+
+        GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        cube.name = "Visual";
+        Destroy(cube.GetComponent<Collider>());
+        cube.transform.SetParent(parent, false);
+        cube.transform.localPosition = localCenter;
+        cube.transform.localScale = size;
+        cube.GetComponent<Renderer>().sharedMaterial = fallback;
     }
 }

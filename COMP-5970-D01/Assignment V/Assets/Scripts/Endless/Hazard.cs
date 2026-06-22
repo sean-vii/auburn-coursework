@@ -23,6 +23,15 @@ public class Hazard : MonoBehaviour
     public float boostDuration = 2f;
     public float pushSpeed = 9f;
 
+    void Update()
+    {
+        // Spin the boost coin so it reads as a collectible.
+        if (type == HazardType.Boost)
+        {
+            transform.Rotate(0f, 120f * Time.deltaTime, 0f, Space.Self);
+        }
+    }
+
     // Kill obstacles are solid (collision); zones/pads are triggers.
     void OnCollisionEnter(Collision collision)
     {
