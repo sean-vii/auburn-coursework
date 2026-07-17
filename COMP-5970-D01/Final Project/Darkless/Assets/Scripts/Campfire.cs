@@ -31,6 +31,9 @@ public class Campfire : MonoBehaviour
     [Tooltip("Press this key anywhere to add fuel, just to test refuelling for now.")]
     public bool enableTestRefuel = true;
     public float testRefuelAmount = 25f;
+    [Tooltip("Key that adds test fuel. Defaults to R (refuel) so it doesn't clash with the " +
+             "flashlight's F toggle.")]
+    public Key testRefuelKey = Key.R;
 
     LightZone zone;
     float currentFuel;
@@ -53,7 +56,7 @@ public class Campfire : MonoBehaviour
         // Temporary manual refuel so we can test the loop now. Phase 3 replaces this with
         // "deposit a log/stick from the backpack" -> AddFuel(...). Uses the new Input System
         // directly (Keyboard.current) so it works whatever the project's input setting is.
-        if (enableTestRefuel && Keyboard.current != null && Keyboard.current.fKey.wasPressedThisFrame)
+        if (enableTestRefuel && Keyboard.current != null && Keyboard.current[testRefuelKey].wasPressedThisFrame)
             AddFuel(testRefuelAmount);
 
         ApplyFuelToLook();
