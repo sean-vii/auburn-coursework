@@ -30,6 +30,18 @@ public class Flashlight : MonoBehaviour
     public float onRadius = 5f;
     [Tooltip("Optional Spot Light child that is the visible beam. Enabled/disabled with the flashlight.")]
     public Light beam;
+    [Tooltip("Optional faked 'volumetric' beam cone (a FlashlightBeamCone object). Shown only while " +
+             "the flashlight is on. Purely cosmetic; the real safe light is the LightZone + Spot Light.")]
+    public GameObject beamCone;
+
+    [Header("Held model")]
+    [Tooltip("The visible flashlight mesh in the player's hand. It only shows while the flashlight is " +
+             "ON (being used) and hides when it's off or dead. Leave empty to keep the model always " +
+             "visible. Assign the mesh object here (usually a child of this object).")]
+    public GameObject heldModel;
+    [Tooltip("If true, hide the model when the flashlight is off (only appears in hand when in use). " +
+             "If false, the model stays in hand all the time and only the beam turns on/off.")]
+    public bool hideModelWhenOff = true;
 
     [Header("Emergency burst (panic button)")]
     [Tooltip("Allow the burst. Turn off if you don't want an emergency mode yet.")]
@@ -117,5 +129,15 @@ public class Flashlight : MonoBehaviour
 
         if (beam != null)
             beam.enabled = lit;
+
+        // The faked visible beam cone follows the same on/off state as the beam.
+        if (beamCone != null)
+            beamCone.SetActive(lit);
+
+        // Show the flashlight in the player's hand only while it's on (unless the model is
+        // meant to stay out all the time). SetActive to the same value is a no-op, so this is
+        // safe to call every frame.
+        if (heldModel != null)
+            heldModel.SetActive(hideModelWhenOff ? lit : true);
     }
 }
