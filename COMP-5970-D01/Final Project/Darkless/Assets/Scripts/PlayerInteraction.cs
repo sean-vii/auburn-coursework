@@ -3,130 +3,223 @@ using UnityEngine;
 using TMPro;
 using UnityEngine.InputSystem;
 
-// Lives on the player. Every frame it finds the nearest harvestable resource in range and
-// shows/hides the "Press E" prompt. When the player presses Interact (E), it plays that
-// resource's animation, waits, then collects it.
+// Lives on the player. Each frame it finds the nearest interactable in range (a harvestable
+// resource, a searchable leaf pile, the campfire) and shows a prompt. Interactions come in two
+// flavours, decided by the interactable itself:
+//   * TAP  -> one press of E resolves it immediately (pick fruit, feed the fire).
+//   * HOLD -> hold E for a few seconds (searching a leaf pile). A progress bar fills, and letting
+//             go or walking away cancels it.
 //
-// Input: uses the new Input System with the PlayerInput "Send Messages" behavior, so the
-// input callback MUST be named OnInteract (On + the action name "Interact").
+// Input: new Input System with PlayerInput "Send Messages", so the press callback MUST be named
+// OnInteract. The HELD state (for searching) is read straight from the Interact action each frame.
 public class PlayerInteraction : MonoBehaviour
 {
     [Header("Detection")]
-    [Tooltip("How close the player must be for a resource to be detected.")]
+    [Tooltip("How close the player must be for something to be interactable.")]
     public float interactionRange = 3f;
-    [Tooltip("The 'Press E to interact' prompt text (starts disabled).")]
+    [Tooltip("The prompt text (starts disabled). Shows e.g. 'Hold E to search'.")]
     public TMP_Text promptText;
 
     [Header("Timing")]
-    [Tooltip("Wait before the resource is collected, so the animation has time to play.")]
-    public float collectDelay = 0.8f;
-    [Tooltip("Cooldown after a harvest before another can start (stops E-spamming).")]
+    [Tooltip("Wait before a TAP interaction resolves. This is also how long the first-person pickup " +
+             "arm stays on screen (viewmodel is shown for collectDelay + cooldown), so raise it to " +
+             "let the pick animation play longer.")]
+    public float collectDelay = 1.35f;
+    [Tooltip("Cooldown after an interaction before another can start.")]
     public float cooldown = 0.3f;
+    [Tooltip("How long a feedback message (e.g. 'Pack full') stays on screen.")]
+    public float messageDuration = 1.2f;
 
-    // The resource we're currently near (or null).
-    private InteractableResource currentResource;
-    // The player's Animator, used to trigger the harvest animations.
-    private Animator animator;
-    // True while a harvest is playing, so we don't start a second one on top of it.
-    private bool isInteracting;
+    [Header("Animation")]
+    [Tooltip("Also play the pickup/search animation on the player's OWN body. Leave this OFF for " +
+             "first-person: the main body keeps its walking/idle locomotion and the pickup plays " +
+             "ONLY on the first-person hands viewmodel (FirstPersonPickupHands listens to the " +
+             "InteractionStarted event). Turn it ON only for a third-person view where you want to " +
+             "see the whole body perform the action.")]
+    public bool animatePickupOnMainBody = false;
+
+    // The interactable we're currently near (or null).
+    IInteractable current;
+    Animator animator;
+    InputAction interactAction;   // the Interact (E) action, so we can read the HELD state
+    bool isInteracting;           // true while a TAP interaction's coroutine is running
+
+    // Hold-to-search progress, 0..1. -1 means "not holding / hide the bar". Read by the progress UI.
+    public float HoldProgress01 { get; private set; } = -1f;
+
+    // True while the player is busy with an interaction (a tap animation playing, or a hold in
+    // progress). A camera rig / hands viewmodel reads this to react to the action.
+    public bool IsBusy => isInteracting || HoldProgress01 >= 0f;
+
+    // Fired the moment an interaction animation starts, carrying its Animator trigger name
+    // (e.g. "PickFruit"). The first-person hands viewmodel listens so it can play the SAME
+    // animation in front of the camera.
+    public event System.Action<string> InteractionStarted;
+
+    float holdTimer;
+    float messageTimer;           // >0 while a feedback message is showing
+    string overrideMessage;       // the feedback message, shown instead of the normal prompt
 
     void Start()
     {
         animator = GetComponent<Animator>();
 
-        // Prompt stays hidden until we're actually near a resource.
+        // Grab the Interact action so Update can ask "is E held right now?" for hold interactions.
+        var playerInput = GetComponent<PlayerInput>();
+        if (playerInput != null)
+            interactAction = playerInput.actions["Interact"];
+
         if (promptText != null)
             promptText.gameObject.SetActive(false);
     }
 
     void Update()
     {
-        FindNearbyResource();
+        FindNearby();
+
+        bool held = interactAction != null && interactAction.IsPressed();
+        HandleHold(held);
+
+        UpdatePrompt();
     }
 
-    // Finds the closest resource within interactionRange and updates the prompt.
-    void FindNearbyResource()
+    // Finds the closest usable interactable within range.
+    void FindNearby()
     {
-        // An invisible sphere around the player returns every collider inside the range.
         Collider[] hits = Physics.OverlapSphere(transform.position, interactionRange);
 
-        InteractableResource closestResource = null;
-        float closestDistance = Mathf.Infinity;
+        IInteractable closest = null;
+        float closestDist = Mathf.Infinity;
 
         foreach (Collider hit in hits)
         {
-            InteractableResource resource = hit.GetComponent<InteractableResource>();
-
-            // Ignore colliders that aren't harvestable resources (terrain, the player, etc.).
-            if (resource == null)
+            // GetComponentInParent so the collider can live on a child mesh of the interactable.
+            IInteractable it = hit.GetComponentInParent<IInteractable>();
+            if (it == null || !it.CanInteract)
                 continue;
 
-            float distance = Vector3.Distance(transform.position, resource.transform.position);
-            if (distance < closestDistance)
+            float dist = Vector3.Distance(transform.position, it.Position);
+            if (dist < closestDist)
             {
-                closestDistance = distance;
-                closestResource = resource;
+                closestDist = dist;
+                closest = it;
             }
         }
 
-        currentResource = closestResource;
+        // If we moved off the thing we were searching, cancel the in-progress hold.
+        if (!ReferenceEquals(closest, current))
+            CancelHold();
 
-        // While harvesting, the coroutine owns the prompt — don't fight it here.
+        current = closest;
+    }
+
+    // Advances a hold-to-search interaction while E is held on a Hold target.
+    void HandleHold(bool held)
+    {
+        if (isInteracting) { CancelHold(); return; }
+
+        bool holdingValidTarget = current != null && current.Kind == InteractionKind.Hold && held;
+        if (!holdingValidTarget) { CancelHold(); return; }
+
+        // Kick the search animation on the first frame of the hold.
+        if (holdTimer <= 0f)
+        {
+            // Main body only plays it if explicitly opted in (off by default -> keeps walking/idle).
+            if (animatePickupOnMainBody && animator != null && !string.IsNullOrEmpty(current.AnimationTrigger))
+                animator.SetTrigger(current.AnimationTrigger);
+            // Always tell the first-person hands viewmodel to play it in front of the camera.
+            InteractionStarted?.Invoke(current.AnimationTrigger);
+        }
+
+        holdTimer += Time.deltaTime;
+        float dur = Mathf.Max(0.01f, current.HoldDuration);
+        HoldProgress01 = Mathf.Clamp01(holdTimer / dur);
+
+        if (holdTimer >= dur)
+        {
+            Complete(current);
+            CancelHold();
+        }
+    }
+
+    void CancelHold()
+    {
+        holdTimer = 0f;
+        HoldProgress01 = -1f;
+    }
+
+    // Shows the right prompt / feedback message.
+    void UpdatePrompt()
+    {
+        if (promptText == null) return;
+
+        // A feedback message ("Pack full", "+1 Apple") takes priority for a moment.
+        if (messageTimer > 0f)
+        {
+            messageTimer -= Time.deltaTime;
+            promptText.text = overrideMessage;
+            promptText.gameObject.SetActive(true);
+            return;
+        }
+
+        // While a tap interaction plays, its coroutine owns the screen.
         if (isInteracting)
             return;
 
-        if (promptText != null)
+        if (current != null)
         {
-            if (currentResource != null)
-            {
-                promptText.text = "Press E to interact";
-                promptText.gameObject.SetActive(true);
-            }
-            else
-            {
-                promptText.gameObject.SetActive(false);
-            }
+            promptText.text = current.Prompt;
+            promptText.gameObject.SetActive(true);
+        }
+        else
+        {
+            promptText.gameObject.SetActive(false);
         }
     }
 
-    // Fired by the new Input System (Send Messages) when the Interact action is pressed.
+    // Fired by the Input System (Send Messages) when Interact (E) is pressed or released. We only
+    // act on the press edge, and only for TAP interactions — HOLD is handled in Update while held.
     public void OnInteract(InputValue value)
     {
-        // Ignore the key-release half of the press.
-        if (!value.isPressed)
-            return;
+        if (!value.isPressed) return;
+        if (current == null || isInteracting) return;
+        if (current.Kind != InteractionKind.Tap) return;
 
-        // Nothing nearby, or we're already mid-harvest -> do nothing.
-        if (currentResource == null || isInteracting)
-            return;
-
-        StartCoroutine(InteractRoutine());
+        StartCoroutine(TapRoutine(current));
     }
 
-    // Plays the animation, waits, collects the resource, then cools down.
-    IEnumerator InteractRoutine()
+    // Plays the animation, waits, then resolves a TAP interaction.
+    IEnumerator TapRoutine(IInteractable target)
     {
         isInteracting = true;
 
-        // Hide the prompt while the action plays.
-        if (promptText != null)
-            promptText.gameObject.SetActive(false);
+        // Main body only plays it if explicitly opted in (off by default -> keeps walking/idle).
+        if (animatePickupOnMainBody && animator != null && !string.IsNullOrEmpty(target.AnimationTrigger))
+            animator.SetTrigger(target.AnimationTrigger);
+        // Always tell the first-person hands viewmodel to play it in front of the camera.
+        InteractionStarted?.Invoke(target.AnimationTrigger);
 
-        // Fire this resource's own trigger (apple tree -> PickFruit, ore rock -> GatherOre),
-        // so the same script plays different animations per resource type.
-        if (animator != null && !string.IsNullOrEmpty(currentResource.animationTrigger))
-            animator.SetTrigger(currentResource.animationTrigger);
-
-        // Give the animation a moment before the resource is collected/removed.
         yield return new WaitForSeconds(collectDelay);
 
-        // The player may have walked away during the animation, so re-check.
-        if (currentResource != null)
-            currentResource.Interact();
+        // The player may have walked away during the animation, so re-check before resolving.
+        if (target != null && target.CanInteract &&
+            Vector3.Distance(transform.position, target.Position) <= interactionRange)
+        {
+            Complete(target);
+        }
 
-        // Small cooldown before the next harvest can begin.
         yield return new WaitForSeconds(cooldown);
-
         isInteracting = false;
+    }
+
+    // Runs the interactable's effect and flashes its feedback message.
+    void Complete(IInteractable target)
+    {
+        InteractionResult result = target.Interact(gameObject);
+        if (!string.IsNullOrEmpty(result.message))
+        {
+            overrideMessage = result.message;
+            messageTimer = messageDuration;
+        }
     }
 }

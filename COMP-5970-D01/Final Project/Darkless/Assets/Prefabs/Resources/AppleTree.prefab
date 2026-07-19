@@ -282,9 +282,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7723c4d9f3042b544923af171e54dd63, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InteractableResource
-  resourceName: apple
+  item: {fileID: 11400000, guid: 05d6f8a6179397a4fa0a7f455d45cf02, type: 2}
   amountPerCollect: 1
-  usesRemaining: 1
+  usesRemaining: 3
   animationTrigger: PickFruit
   destroyWhenEmpty: 1
 --- !u!1 &7513603357302551873
