@@ -78,8 +78,12 @@ public class PlayerDarkness : MonoBehaviour
         return LightZone.AnyCovers(transform.position);
     }
 
-    void Die()
+    // Public so other systems can end the game through the ONE death path.
+    // The monster (EnemyAI) calls this on touch, so darkness-death and monster-death
+    // share the same behaviour (currently: reload the scene). Guarded against re-entry.
+    public void Die()
     {
+        if (isDead) return;
         isDead = true;
         // Simplest testable death: restart the scene. A proper game-over screen comes later.
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
