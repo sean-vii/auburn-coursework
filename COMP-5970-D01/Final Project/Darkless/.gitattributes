@@ -1,0 +1,96 @@
+# .gitattributes — Unity project
+#
+# Purpose: stop Git from applying line-ending (CRLF<->LF) conversion to Unity's
+# binary asset files. Without this, a clone/download on a machine with
+# core.autocrlf=true can silently corrupt binary .asset files (e.g. TerrainData),
+# which makes the terrain / scene fail to load with console errors.
+#
+# `-text` marks a pattern as binary: Git stores and checks it out byte-for-byte,
+# on every machine, regardless of that machine's core.autocrlf setting.
+#
+# Normal source/text files are left to auto-normalization.
+* text=auto
+
+## ---- Unity serialized assets (THE FIX for corrupted terrain / .asset on clone) ----
+*.asset              -text
+*.unity              -text
+*.prefab             -text
+*.mat                -text
+*.anim               -text
+*.controller         -text
+*.overrideController -text
+*.mask               -text
+*.playable           -text
+*.mesh               -text
+*.terrainlayer       -text
+*.mixer              -text
+*.brush              -text
+*.signal             -text
+*.cubemap            -text
+*.flare              -text
+*.fontsettings       -text
+*.guiskin            -text
+*.giparams           -text
+*.renderTexture      -text
+*.spriteatlas        -text
+*.lighting           -text
+*.physicMaterial     -text
+*.physicsMaterial2D  -text
+
+## ---- 3D models ----
+*.fbx    -text
+*.FBX    -text
+*.obj    -text
+*.blend  -text
+*.blend1 -text
+*.dae    -text
+*.3ds    -text
+*.dxf    -text
+*.max    -text
+*.c4d    -text
+
+## ---- Images / textures ----
+*.png  -text
+*.PNG  -text
+*.jpg  -text
+*.jpeg -text
+*.gif  -text
+*.psd  -text
+*.tga  -text
+*.tif  -text
+*.tiff -text
+*.bmp  -text
+*.exr  -text
+*.hdr  -text
+*.dds  -text
+*.ico  -text
+
+## ---- Audio ----
+*.mp3  -text
+*.ogg  -text
+*.wav  -text
+*.aif  -text
+*.aiff -text
+
+## ---- Video ----
+*.mp4  -text
+*.mov  -text
+*.webm -text
+
+## ---- Fonts ----
+*.ttf -text
+*.otf -text
+
+## ---- Other binaries ----
+*.dll          -text
+*.so           -text
+*.dylib        -text
+*.a            -text
+*.pdb          -text
+*.unitypackage -text
+*.aar          -text
+*.bin          -text
+*.zip          -text
+*.7z           -text
+*.rar          -text
+*.gz           -text
