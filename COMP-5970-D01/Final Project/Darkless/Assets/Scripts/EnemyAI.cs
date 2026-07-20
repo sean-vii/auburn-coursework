@@ -80,6 +80,19 @@ public class EnemyAI : MonoBehaviour
              "so it may vanish even while roughly in front of them.")]
     public float maxSeeDistance = 40f;
 
+    [Header("Audio")]
+    [Tooltip("Looping footstep/skitter sound. Plays ONLY while Attacking — the cue that it's " +
+             "actively closing in on you. 3D, so it gets louder as it nears.")]
+    public AudioClip walkClip;
+    [Tooltip("Rustle sounds for Stalking. One is picked at random and played each time it " +
+             "repositions (at least once per stalk). Because the monster is invisible while " +
+             "stalking, this 3D rustle from its position is your only cue to where it is.")]
+    public AudioClip[] stalkRustleClips;
+    [Range(0f, 1f)] public float walkVolume = 0.9f;
+    [Range(0f, 1f)] public float rustleVolume = 1f;
+    [Tooltip("Distance at which the monster's own sounds fade out (linear 3D rolloff).")]
+    public float soundMaxDistance = 35f;
+
     [Header("Debug marker (testing only)")]
     [Tooltip("Show an always-visible beacon above the monster + an on-screen readout of its state " +
              "and distance — even while it's invisible/stalking. Turn OFF for real play.")]
@@ -98,6 +111,8 @@ public class EnemyAI : MonoBehaviour
     FlashlightBeamCone flashlightBeamCone;
     Light flashlightBeam;
     Camera cam;
+    AudioSource walkSource;    // looping footsteps while Attacking
+    AudioSource rustleSource;  // one-shot rustles while Stalking
 
     Vector3 velocity;
     Vector3 retreatDir; // the (fixed, random) heading it flees along this retreat
@@ -134,8 +149,37 @@ public class EnemyAI : MonoBehaviour
                 flashlightBeamCone = flashlight.beamCone.GetComponent<FlashlightBeamCone>();
         }
 
+        // Build our own 3D audio sources so no manual wiring is needed — just assign the clips.
+        // (Created before EnterRetreat, which stops the walk source.)
+        walkSource = CreateAudioSource(loop: true, volume: walkVolume);
+        walkSource.clip = walkClip;
+        rustleSource = CreateAudioSource(loop: false, volume: rustleVolume);
+
         if (showDebugMarker) CreateMarker();
         EnterRetreat();
+    }
+
+    // A fully-3D AudioSource on the monster, so direction and distance read naturally even while
+    // the creature itself is invisible (Stalking) or fading in from the fog.
+    AudioSource CreateAudioSource(bool loop, float volume)
+    {
+        AudioSource a = gameObject.AddComponent<AudioSource>();
+        a.playOnAwake = false;
+        a.loop = loop;
+        a.volume = volume;
+        a.spatialBlend = 1f;                       // fully 3D
+        a.rolloffMode = AudioRolloffMode.Linear;
+        a.minDistance = 3f;
+        a.maxDistance = soundMaxDistance;
+        return a;
+    }
+
+    // Pick a random rustle and play it from the monster's current (often invisible) position.
+    void PlayStalkRustle()
+    {
+        if (rustleSource == null || stalkRustleClips == null || stalkRustleClips.Length == 0) return;
+        AudioClip clip = stalkRustleClips[Random.Range(0, stalkRustleClips.Length)];
+        if (clip != null) rustleSource.PlayOneShot(clip, rustleVolume);
     }
 
     // Keep the beacon parked above the monster (works even while its body renderers are off).
@@ -219,6 +263,7 @@ public class EnemyAI : MonoBehaviour
         // flashlight catches it mid-attack (this is what kills the janky reaction).
         velocity = retreatDir * RetreatSpeed();
         SetVisible(true);
+        if (walkSource != null) walkSource.Stop();
     }
 
     void TickRetreat()
@@ -252,8 +297,11 @@ public class EnemyAI : MonoBehaviour
         SetVisible(false);
         teleportTimer = 0f;
         patienceTimer = Random.Range(patienceMin, patienceMax) * AggressionTimeScale;
+        if (walkSource != null) walkSource.Stop();
         // Snap to a dark spot right away so it's lurking at a sensible distance.
         TeleportToDark(preferOutOfView: true, mustBeOutOfView: false);
+        // Guarantee the player hears it at least once each time it starts stalking.
+        PlayStalkRustle();
     }
 
     void TickStalking()
@@ -266,6 +314,8 @@ public class EnemyAI : MonoBehaviour
         {
             teleportTimer = teleportInterval * AggressionTimeScale;
             TeleportToDark(preferOutOfView: true, mustBeOutOfView: false);
+            // A fresh rustle from the new spot — the moving directional cue to where it lurks.
+            PlayStalkRustle();
         }
 
         patienceTimer -= Time.deltaTime;
@@ -280,6 +330,8 @@ public class EnemyAI : MonoBehaviour
         state = State.Attacking;
         SetVisible(true);
         playerSafeTimer = 0f;
+        // Footsteps only while actively attacking — the sound of it closing in.
+        if (walkSource != null && walkClip != null && !walkSource.isPlaying) walkSource.Play();
     }
 
     void TickAttacking()
@@ -314,6 +366,8 @@ public class EnemyAI : MonoBehaviour
     {
         state = State.Reposition;
         SetVisible(true);
+        // Not "attacking" per the design — silence the footsteps while it slips back to the dark.
+        if (walkSource != null) walkSource.Stop();
     }
 
     void TickReposition()
@@ -515,7 +569,7 @@ public class EnemyAI : MonoBehaviour
     void Kill()
     {
         PlayerDarkness pd = target.GetComponentInParent<PlayerDarkness>();
-        if (pd != null) pd.Die();
+        if (pd != null) pd.Die("It found you.");
         else UnityEngine.SceneManagement.SceneManager.LoadScene(
             UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
     }

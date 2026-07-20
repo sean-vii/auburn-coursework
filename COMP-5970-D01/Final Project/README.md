@@ -1,73 +1,87 @@
-# Darkless — Final Project (Checkpoint 1)
+# Darkless
+
+A 3D low-poly survival horror game made in Unity.
 
 **Course:** COMP-5970-D01
-**Engine:** Unity `6000.4.8f1` (Unity 6.4) · Universal Render Pipeline (URP) · new Input System
-**Project folder:** [`Darkless/`](./Darkless) — a standard Unity project (`Assets/`, `Packages/`, `ProjectSettings/`).
+**Engine:** Unity `6000.4.8f1` (Unity 6.4), URP, new Input System
+**Project folder:** [`Darkless/`](./Darkless) — a normal Unity project (`Assets/`, `Packages/`, `ProjectSettings/`).
 
----
+## What the game is
 
-## Game title
+You're stuck at a campsite in the woods at night. Your car is right there, but you lost the keys
+somewhere in the forest. Something is hunting you in the dark — but light slows it down. Stay in
+the light, find the car key, and drive away to escape.
 
-**Darkless**
+The one rule: **light keeps you alive, the dark kills you.**
 
-## Game concept
+## How to win and lose
 
-Darkless is a 3D low-poly **third-person survival-horror** game built on one rule: **light is life, darkness is death.**
+**Win:** find a car key (keys only show up at night), take it to the car, and press E to escape.
+Only one key starts the car.
 
-You're stranded at a woodland campsite after dark. Your car is right there — but you lost the keys somewhere out in the woods earlier, and something is hunting in the dark. The monster doesn't want to fight you; it wants your light *out*. It moves freely and lethally in total darkness, but the more lit the ground it stands on, the slower it gets — so light is both your shield and your weapon.
+**Lose:**
+- You stand in the dark too long (your light runs out).
+- The monster touches you.
 
-The intended loop: **by day** you gather what you need (fruit for stamina, wood for the fire) in relative safety; **by night** you keep your campfire alive, manage your light, and search the woods for the car keys. Several keys can be found, but **only one starts your car** — find the right one and drive away to win.
+## How to play
 
-> Checkpoint 1 establishes the world and the core survival systems. The full night-search / monster / escape loop is in progress (see *Roadmap* below).
+- Stay in light. In the dark, a meter drains and you die when it's empty. Daylight, the campfire,
+  and your flashlight all count as light.
+- Keep the **campfire** fed with wood so its safe area stays lit.
+- The **monster** moves fast in the dark and slows down in the light. Shine your flashlight at it
+  to scare it off. It kills you if it touches you.
+- At night, **glowing creatures** appear in the woods. Search them to look for keys (you find a
+  key most of the time, but not always).
+- Gather **fruit** (for stamina) and **wood** (for the fire) during the day. Your backpack has a
+  weight limit, so you can't carry everything at once.
 
 ## Controls
 
-| Action | Input |
+| Action | Key |
 |---|---|
 | Move | **W A S D** |
 | Look | **Mouse** |
 | Sprint | **Left Shift** |
 | Jump | **Space** |
-| Interact / harvest (e.g. apple trees) | **E** |
-| Refuel the campfire *(temporary test key for this checkpoint)* | **F** |
+| Interact — pick up, feed the fire, use the car | **E** (tap) |
+| Search a creature | **Hold E** |
+| Flashlight on/off | **F** |
+| Flashlight burst (scare the monster) | **G** |
+| Open/close backpack | **Tab** |
 
-## Current objective (Checkpoint 1)
+## What's in the game
 
-Explore the dark, foggy forest and **stay alive in the light.** When night falls, don't get caught out in the darkness — a light meter drains when you're unlit and kills you when it empties. Keep the **campfire** fed so its safe radius doesn't shrink and go out, and harvest apple trees along the way. (The win condition — finding the car key at night and returning to the car — is planned for a later checkpoint.)
+- A dark, foggy forest with a campsite and a day/night cycle.
+- A first-person player and camera.
+- A monster that hunts you in the dark and slows in the light.
+- A light meter — stay lit or die.
+- A flashlight with a limited battery.
+- A backpack with a weight limit (carry food and wood).
+- Stamina — sprinting uses it up, eating food refills it.
+- A campfire you feed with wood to keep a safe zone.
+- Night-only search creatures that can give you car keys.
+- Win screen ("You Escaped") and death screen ("You Died"), both with a restart button.
+- Background music, forest ambience, and monster sounds.
 
-## What is working in Checkpoint 1
+## How to open and run
 
-- **Explorable horror world** — the low-poly wilderness re-themed into a dark, dense, foggy forest with a color-graded horror look and a campsite/campfire.
-- **Third-person player** — custom low-poly human character with the standard movement/camera controller (move, look, sprint, jump).
-- **Day/night cycle with dynamic fog** — a looping cycle with **longer nights**; fog is thin and pale by day (so you can see) and thick and dark at night (so it closes in), blended automatically.
-- **Layered ambient audio** tied to the cycle.
-- **Navigation** — on-screen **mini-map** and **compass**.
-- **Harvesting** — walk up to an apple tree, press **E**, play a pick animation, and an on-screen counter increments.
-- **Core survival rule — the darkness meter** *(the heart of the game)* — you are safe in **daylight** or inside a **light source**; in the dark, a meter drains and, when empty, the screen fades to black, you die, and the scene restarts.
-- **Campfire fuel system** — the campfire burns fuel over time; its **safe radius shrinks** as fuel drops, **goes out** (no safe zone) at zero, and **relights** when fed; the fire's glow scales with its fuel.
-
-The project **runs without major errors** and is testable: open `Darkless/Assets/Scenes/SampleScene` in Unity 6000.4.8f1 and press **Play**.
-
-## Roadmap (not yet implemented)
-
-Flashlight (finite battery) · handheld torches (built from sticks, throwable) · a starting lantern network · a weighted backpack + stamina/food · the monster and its light-aware AI · night-only key search + the multi-key/"only one fits" car-escape win · a searchable-area boundary · a night-by-night difficulty ramp · a horror audio pass.
-
-## How to open / run
-
-1. Clone this repo and open the **`Darkless/`** folder as a project in **Unity 6000.4.8f1** (URP). Unity regenerates the `Library/` folder on first open.
+1. Clone this repo and open the **`Darkless/`** folder in **Unity 6000.4.8f1** (URP). Unity rebuilds
+   the `Library/` folder the first time it opens.
 2. Open the scene **`Assets/Scenes/SampleScene.unity`**.
-3. Press **Play**. (To preview night quickly, select **DayNightManager** in the Hierarchy and drag **Time Of Day** toward ~0.6.)
+3. Press **Play**. It starts in the daytime; night comes after about 7 seconds. (To start at night,
+   pick **DayNightManager** in the Hierarchy and set **Time Of Day** to about `0.6`.)
 
-## External assets & resources used so far
+## Assets used
 
-| Asset / resource | Use | Link |
+| Asset / resource | Used for | Link |
 |---|---|---|
-| **Low Poly Environment — Nature (Free)** — Polytope Studio | Terrain, trees, grass, rocks, skybox, fruit-tree & log props | https://assetstore.unity.com/packages/3d/environments/low-poly-environment-nature-free-lowpoly-medieval-fantasy-series-187052 |
-| **Starter Assets: Third Person Controller (URP)** — Unity (+ **Cinemachine**) | Player controller + follow camera | https://assetstore.unity.com/packages/essentials/starter-assets-thirdperson-urp-196526 |
-| **FREE Low Poly Human - RPG Character** — Blink | The player character model + its animation set | https://assetstore.unity.com/packages/3d/characters/humanoids/fantasy/free-low-poly-human-rpg-character-219979 |
-| **Mixamo** — Adobe | Harvest / interaction animations | https://www.mixamo.com |
-| **Audio — "Atmospheric documentary"** (Pixabay) | Constant ambient bed | https://pixabay.com/music/meditationspiritual-atmospheric-documentary-509386/ |
-| **Audio — "Nature forest daytime"** (Pixabay) | Day audio layer | https://pixabay.com/sound-effects/nature-forest-daytime-446356/ |
-| **Audio — "Night forest, frogs & crickets"** (Pixabay) | Night audio layer | https://pixabay.com/sound-effects/nature-night-forest-with-frogs-and-crickets-for-sleep-451153/ |
+| **Low Poly Environment — Nature (Free)** — Polytope Studio | Terrain, trees, grass, rocks, sky, props | https://assetstore.unity.com/packages/3d/environments/low-poly-environment-nature-free-lowpoly-medieval-fantasy-series-187052 |
+| **Starter Assets: Third Person Controller (URP)** — Unity (+ Cinemachine) | Player movement + camera | https://assetstore.unity.com/packages/essentials/starter-assets-thirdperson-urp-196526 |
+| **FREE Low Poly Human - RPG Character** — Blink | Player character model + animations | https://assetstore.unity.com/packages/3d/characters/humanoids/fantasy/free-low-poly-human-rpg-character-219979 |
+| **Mimic Prototype** | The monster | https://assetstore.unity.com/packages/3d/characters/creatures/mimic-prototype-245997 |
+| **Mixamo** — Adobe | Pick-up / search animations | https://www.mixamo.com |
+| Low-poly **car**, **key**, and **creature** models | Escape car, key item, night search creatures | Free low-poly models (imported as FBX) |
+| **Pixabay** audio — "Atmospheric documentary", "Nature forest daytime", "Night forest, frogs & crickets", plus monster/death sound effects | Music, ambience, and sound effects | https://pixabay.com |
 
-All audio is free under the Pixabay Content License; asset-store packages are used under their respective Unity Asset Store licenses.
+All Pixabay audio is free under the Pixabay Content License. Asset Store packages are used under
+their Unity Asset Store licenses.

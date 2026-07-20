@@ -14,15 +14,24 @@ public class SearchSpot : MonoBehaviour, IInteractable
     public float searchDuration = 3f;
     [Tooltip("Prompt shown while standing on the spot.")]
     public string prompt = "Hold E to search";
-    [Tooltip("Animator trigger played when the search starts (e.g. a kneel/ground animation). " +
-             "Empty = none.")]
-    public string animationTrigger = "GatherOre";
+    [Tooltip("Animator trigger played when the search starts. 'PickStanding' = the arm-extend/reach " +
+             "animation (PickFruit_Standing). Empty = none.")]
+    public string animationTrigger = "PickStanding";
 
     [Header("Reward (placeholder until Phase 5 keys)")]
     [Tooltip("Item granted when the search finishes. Point it at wood/fruit to test now; swap to a " +
              "Key later. Leave empty to grant nothing (just the search action).")]
     public ItemDefinition rewardItem;
     public int rewardAmount = 1;
+    [Range(0f, 1f)]
+    [Tooltip("Chance (0..1) that a completed search actually PRODUCES the reward item. 0.7 = 70% of " +
+             "searches yield the item, the other 30% turn up nothing — so searching is a gamble.")]
+    public float produceChance = 0.7f;
+
+    [Header("When")]
+    [Tooltip("Keys are only findable at NIGHT (GDD §13). When on, this spot can't be searched during " +
+             "the day — no prompt shows until nightfall. Turn off to allow searching any time (testing).")]
+    public bool nightOnly = true;
 
     [Header("Lifetime")]
     [Tooltip("Can only be searched once, then it's spent.")]
@@ -31,13 +40,49 @@ public class SearchSpot : MonoBehaviour, IInteractable
     public bool hideWhenSearched = true;
 
     bool searched;
+    DayNightCycle dayNight;
+    Renderer[] renderers;    // the slime's visuals, hidden during the day
+    Collider spotCollider;   // disabled during the day so it can't even be detected
+    bool? shownState;        // last-applied visibility, so we only toggle on change
+
+    void Awake()
+    {
+        // Cache the day/night clock so we can gate searching to nighttime.
+        dayNight = FindFirstObjectByType<DayNightCycle>();
+        renderers = GetComponentsInChildren<Renderer>(true);
+        spotCollider = GetComponent<Collider>();
+    }
+
+    void Update()
+    {
+        // Search spots are a NIGHT phenomenon: they only APPEAR at night (GDD §13). During the day the
+        // slime is hidden and can't be detected; at night it shows and becomes searchable. Spots that
+        // ignore the night rule (nightOnly off) are always visible.
+        if (nightOnly)
+            SetVisible(IsNight);
+    }
+
+    // Toggle the slime's renderers + collider so it's only present at night.
+    void SetVisible(bool visible)
+    {
+        if (shownState == visible) return;   // no-op unless it actually changed
+        shownState = visible;
+        if (renderers != null)
+            foreach (var r in renderers) if (r != null) r.enabled = visible;
+        if (spotCollider != null) spotCollider.enabled = visible;
+    }
+
+    // True when it's currently night (or if there's no day/night system to ask — fail open so the
+    // spot still works in a bare test scene).
+    bool IsNight => dayNight == null || dayNight.IsNight;
 
     // --- IInteractable ---
     public InteractionKind Kind => InteractionKind.Hold;
     public float HoldDuration => searchDuration;
     public string Prompt => prompt;
     public string AnimationTrigger => animationTrigger;
-    public bool CanInteract => !(onceOnly && searched);
+    // Usable only if not already spent AND (it's night, or this spot ignores the night rule).
+    public bool CanInteract => !(onceOnly && searched) && (!nightOnly || IsNight);
     public Vector3 Position => transform.position;
 
     // Called when the player finishes holding E long enough to complete the search.
@@ -50,8 +95,10 @@ public class SearchSpot : MonoBehaviour, IInteractable
 
         string message = "Searched — nothing here";
 
-        // Grant the reward (if any) into the backpack. Keys are weightless, so they always fit.
-        if (rewardItem != null && rewardAmount > 0)
+        // A search only PRODUCES an item some of the time (produceChance) — the rest turn up empty, so
+        // searching is a gamble. Keys are weightless, so when one is produced it always fits.
+        bool produces = rewardItem != null && rewardAmount > 0 && Random.value <= produceChance;
+        if (produces)
         {
             Backpack pack = interactor != null ? interactor.GetComponentInParent<Backpack>() : null;
             int added = pack != null ? pack.TryAdd(rewardItem, rewardAmount) : 0;

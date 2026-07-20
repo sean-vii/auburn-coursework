@@ -8085,6 +8085,113 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b768e3cd44552b9469772205c2e30bac, type: 3}
+--- !u!1001 &252374317
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 260618120732cae49b12eb930b1d9836, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 488.956
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 260618120732cae49b12eb930b1d9836, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 30.47
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 260618120732cae49b12eb930b1d9836, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 419.48
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 260618120732cae49b12eb930b1d9836, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 260618120732cae49b12eb930b1d9836, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 260618120732cae49b12eb930b1d9836, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 260618120732cae49b12eb930b1d9836, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 260618120732cae49b12eb930b1d9836, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: -90
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 260618120732cae49b12eb930b1d9836, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 260618120732cae49b12eb930b1d9836, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 260618120732cae49b12eb930b1d9836, type: 3}
+      propertyPath: m_Name
+      value: Car
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 260618120732cae49b12eb930b1d9836, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 252374320}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 260618120732cae49b12eb930b1d9836, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 252374319}
+  m_SourcePrefab: {fileID: 100100000, guid: 260618120732cae49b12eb930b1d9836, type: 3}
+--- !u!1 &252374318 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 260618120732cae49b12eb930b1d9836, type: 3}
+  m_PrefabInstance: {fileID: 252374317}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &252374319
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 252374318}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb0c18003efc91f48a348f70bf59fdf7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Car
+  correctKey: {fileID: 11400000, guid: 05dc248f0a2823f4a9ddeae497b7c633, type: 2}
+  winScreen: {fileID: 1004126066}
+  prompt: Press E to try your keys
+  wrongKeyMessage: None of these keys fit.
+  noKeysMessage: The car is locked. You need to find the keys.
+  successMessage: "The key turns \u2014 the engine catches!"
+--- !u!65 &252374320
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 252374318}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.02857126, y: 0.04311637, z: 0.013752826}
+  m_Center: {x: 0, y: -0.000044302084, z: -0.00012916792}
 --- !u!4 &253443832 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6419187236850804161, guid: b768e3cd44552b9469772205c2e30bac, type: 3}
@@ -14936,6 +15043,24 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Backpack
   weightCapacity: 35
+--- !u!114 &443198171
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 443198147}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1aa2a223831734c4e87b9e233743e644, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerStamina
+  maxStamina: 100
+  runDrainPerSecond: 4
+  walkRegenPerSecond: 1.5
+  exhaustedAt: 0
+  recoverTo: 20
+  moveDeadzone: 0.1
 --- !u!4 &443429374 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6419187236850804161, guid: b768e3cd44552b9469772205c2e30bac, type: 3}
@@ -35597,9 +35722,13 @@ GameObject:
   m_Component:
   - component: {fileID: 1004126058}
   - component: {fileID: 1004126059}
-  - component: {fileID: 1004126061}
   - component: {fileID: 1004126060}
   - component: {fileID: 1004126062}
+  - component: {fileID: 1004126063}
+  - component: {fileID: 1004126064}
+  - component: {fileID: 1004126065}
+  - component: {fileID: 1004126066}
+  - component: {fileID: 1004126067}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -35651,27 +35780,6 @@ MonoBehaviour:
   fillColor: {r: 0.85, g: 0.85, b: 0.9, a: 0.95}
   size: {x: 160, y: 12}
   yOffset: -70
---- !u!114 &1004126061
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1004126056}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 588acb14ed205c84c99da7f2d79606be, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BackpackBar
-  backpack: {fileID: 0}
-  barBackColor: {r: 0, g: 0, b: 0, a: 0.5}
-  barFillColor: {r: 0.8, g: 0.7, b: 0.35, a: 0.9}
-  barFullColor: {r: 0.9, g: 0.25, b: 0.2, a: 0.95}
-  textColor: {r: 1, g: 1, b: 1, a: 1}
-  margin: {x: 20, y: 20}
-  barWidth: 220
-  barHeight: 16
-  fontSize: 16
 --- !u!114 &1004126062
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -35691,9 +35799,122 @@ MonoBehaviour:
   realArmBones: []
   hiddenScale: 0.0001
   debugPlayKey: 30
-  debugTrigger: PickFruit
+  debugTrigger: PickStanding
   mirrorRoot: {fileID: 0}
   rightHandOccupied: 0
+  framingOverrides:
+  - trigger: PickStanding
+    positionOffset: {x: 0, y: 0, z: 0}
+    rotationOffset: {x: 0, y: 0, z: 0}
+    scaleMultiplier: {x: 1, y: 1, z: 1}
+--- !u!114 &1004126063
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1004126056}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 549825bb64d16b04cb9094be3a76484b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameOverScreen
+  holdSeconds: 0.8
+  fadeSeconds: 1.2
+  deathSound: {fileID: 8300000, guid: e3a884a5abe30464987688544d386ae2, type: 3}
+  deathVolume: 1
+  titleMessage: YOU DIED
+  defaultCause: You died.
+--- !u!114 &1004126064
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1004126056}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 68d5b77ab264f704db4372bf9a562fbc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InventoryMenu
+  backpack: {fileID: 0}
+  toggleKey: 3
+  pauseWhileOpen: 1
+  panelColor: {r: 0.06, g: 0.06, b: 0.07, a: 0.96}
+  dimColor: {r: 0, g: 0, b: 0, a: 0.6}
+  rowColor: {r: 0.14, g: 0.14, b: 0.16, a: 1}
+  rowHoverColor: {r: 0.24, g: 0.22, b: 0.16, a: 1}
+  barBackColor: {r: 0, g: 0, b: 0, a: 0.5}
+  barFillColor: {r: 0.8, g: 0.7, b: 0.35, a: 0.95}
+  barFullColor: {r: 0.9, g: 0.25, b: 0.2, a: 0.95}
+--- !u!114 &1004126065
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1004126056}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 04181918722d3fa4297c1ae9c6e8d281, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StaminaBar
+  stamina: {fileID: 0}
+  backColor: {r: 0, g: 0, b: 0, a: 0.5}
+  fullColor: {r: 0.3, g: 0.85, b: 0.35, a: 0.95}
+  lowColor: {r: 0.9, g: 0.7, b: 0.15, a: 0.95}
+  exhaustedColor: {r: 0.9, g: 0.2, b: 0.15, a: 1}
+  width: 234
+  height: 9
+  margin: {x: 60, y: 78}
+  gapToBattery: 9
+--- !u!114 &1004126066
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1004126056}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c44e3c8d29c282642a29dbe7ebf3fe66, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WinScreen
+  holdSeconds: 0.6
+  fadeSeconds: 1.4
+  winSound: {fileID: 0}
+  winVolume: 1
+  titleMessage: YOU ESCAPED
+  subtitle: You found the key that fit. You drove into the dawn.
+--- !u!114 &1004126067
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1004126056}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11c37f3767497eb46ba2476b04eeaae1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SearchSpotSpawner
+  searchSpotPrefab: {fileID: 919132149155446097, guid: 063eee4170d4e704f896983e9952e2cd, type: 3}
+  spotMaterial: {fileID: 2100000, guid: 75a03c641c980ec4b892c2b50f65d734, type: 2}
+  rewardItem: {fileID: 11400000, guid: 05dc248f0a2823f4a9ddeae497b7c633, type: 2}
+  rewardAmount: 1
+  produceChance: 0.7
+  spotCount: 5
+  areaCenter: {x: 490, y: 30, z: 424}
+  centerOnCampfire: 1
+  minRadius: 30
+  maxRadius: 130
+  minSeparation: 15
+  spotScale: 0.6
+  nightOnly: 1
+  searchDuration: 3
+  prompt: Hold E to search the creature
+  animationTrigger: PickStanding
+  seed: 0
 --- !u!1001 &1004273594
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -67347,6 +67568,14 @@ MonoBehaviour:
   aggression: 0.5
   reengageDelay: 3
   maxSeeDistance: 40
+  walkClip: {fileID: 8300000, guid: f86ed5281c6d6b140b433d8079ff2594, type: 3}
+  stalkRustleClips:
+  - {fileID: 8300000, guid: 2775b1e915dd3ea478e8cb984505a8ea, type: 3}
+  - {fileID: 8300000, guid: 4519b8be24aaceb4fbf2987471f61be1, type: 3}
+  - {fileID: 8300000, guid: f58834a48e8b6ba4f8360630aa89dbaa, type: 3}
+  walkVolume: 0.9
+  rustleVolume: 1
+  soundMaxDistance: 35
   showDebugMarker: 0
   markerColor: {r: 1, g: 0, b: 1, a: 1}
   state: 0
@@ -73684,6 +73913,7 @@ GameObject:
   - component: {fileID: 2020579137}
   - component: {fileID: 2020579136}
   - component: {fileID: 2020579135}
+  - component: {fileID: 2020579138}
   m_Layer: 0
   m_Name: EventSystem
   m_TagString: Untagged
@@ -73752,6 +73982,18 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2020579138
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2020579134}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1511ccae7919cfc46b603b9b337fdc94, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.EventSystems.BaseInput
 --- !u!4 &2021218376 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6419187236850804161, guid: b768e3cd44552b9469772205c2e30bac, type: 3}
@@ -78410,6 +78652,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 4416926081852918481, guid: 64dce48905ffd9b4293e595fa6941544, type: 3}
       insertIndex: -1
       addedObject: {fileID: 443198164}
+    - targetCorrespondingSourceObject: {fileID: 4416926081852918481, guid: 64dce48905ffd9b4293e595fa6941544, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 443198171}
   m_SourcePrefab: {fileID: 100100000, guid: 64dce48905ffd9b4293e595fa6941544, type: 3}
 --- !u!4 &2139803358 stripped
 Transform:
@@ -78987,3 +79232,4 @@ SceneRoots:
   - {fileID: 1657773409}
   - {fileID: 180983166}
   - {fileID: 1814078474}
+  - {fileID: 252374317}

@@ -30,13 +30,19 @@ public class PlayerDarkness : MonoBehaviour
     // 1 = fully safe, 0 = dead. Public so a UI meter or other systems can read it later.
     public float Light01 { get; private set; } = 1f;
 
+    // True once the player has died (so e.g. the inventory won't open over the death screen).
+    public bool IsDead => isDead;
+
     DayNightCycle dayNight;
+    GameOverScreen gameOver;
     bool isDead;
 
     void Start()
     {
         // Find the day/night cycle so we can tell whether it's currently night.
         dayNight = FindFirstObjectByType<DayNightCycle>();
+        // Find the game-over screen (optional — we fall back to an instant reload if it's absent).
+        gameOver = FindFirstObjectByType<GameOverScreen>();
         Light01 = 1f;
         isDead = false;
     }
@@ -64,7 +70,7 @@ public class PlayerDarkness : MonoBehaviour
         }
 
         if (Light01 <= 0f)
-            Die();
+            Die("The dark took you.");
     }
 
     // Is the player safe from the dark right now?
@@ -79,13 +85,18 @@ public class PlayerDarkness : MonoBehaviour
     }
 
     // Public so other systems can end the game through the ONE death path.
-    // The monster (EnemyAI) calls this on touch, so darkness-death and monster-death
-    // share the same behaviour (currently: reload the scene). Guarded against re-entry.
-    public void Die()
+    // The monster (EnemyAI) calls this on touch, so darkness-death and monster-death share the
+    // same behaviour: hand off to the GameOverScreen (freeze + fade + cause + Restart). If no
+    // GameOverScreen is in the scene we fall back to an instant scene reload. Guarded against
+    // re-entry. `cause` is the message shown on the game-over card.
+    public void Die(string cause = null)
     {
         if (isDead) return;
         isDead = true;
-        // Simplest testable death: restart the scene. A proper game-over screen comes later.
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+
+        if (gameOver != null)
+            gameOver.Show(cause);
+        else
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 }

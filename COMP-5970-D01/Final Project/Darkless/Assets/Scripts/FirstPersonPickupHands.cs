@@ -62,10 +62,42 @@ public class FirstPersonPickupHands : MonoBehaviour
              "object is currently active.")]
     public bool rightHandOccupied = false;
 
+    // A per-animation framing tweak. Different pick clips reach differently, so one shared viewmodel
+    // pose can't frame them all. Add an entry for a trigger (e.g. "PickStanding", the search reach) to
+    // nudge JUST that animation's arm — position / rotation / scale — without touching the others
+    // (e.g. "PickFruit", the tree pick, which has no entry and so stays exactly as framed).
+    [System.Serializable]
+    public class ViewmodelFraming
+    {
+        [Tooltip("The Animator trigger this applies to, e.g. \"PickStanding\".")]
+        public string trigger = "PickStanding";
+        [Tooltip("Position nudge in the viewmodel's LOCAL space (X = right, Y = up, Z = forward), " +
+                 "applied only while this animation plays.")]
+        public Vector3 positionOffset;
+        [Tooltip("Rotation nudge (euler degrees) applied only while this animation plays.")]
+        public Vector3 rotationOffset;
+        [Tooltip("Scale multiplier applied only while this animation plays (1,1,1 = unchanged).")]
+        public Vector3 scaleMultiplier = Vector3.one;
+    }
+
+    [Header("Per-animation framing (reposition ONE animation's arm)")]
+    [Tooltip("Optional per-animation viewmodel offsets. Add an entry for a trigger (e.g. PickStanding) to " +
+             "reposition just that pickup's arm. Animations with no entry keep the shared framing. Edits " +
+             "apply LIVE in Play (use the debug key below to preview the pose while you tune the numbers).")]
+    public List<ViewmodelFraming> framingOverrides = new List<ViewmodelFraming>();
+
     Flashlight flashlight;
     Animator realAnimator;
     Vector3[] armOriginalScales;
     bool busyState;
+
+    // The viewmodel's base (shared) local transform + which trigger is currently playing, so we can add
+    // a per-animation framing offset on top of the shared pose.
+    Vector3 vmBasePos;
+    Quaternion vmBaseRot = Quaternion.identity;
+    Vector3 vmBaseScale = Vector3.one;
+    bool vmBaseCached;
+    string activeTrigger;
 
     void Start()
     {
@@ -74,6 +106,11 @@ public class FirstPersonPickupHands : MonoBehaviour
         if (viewmodel != null)
         {
             if (viewmodelAnimator == null) viewmodelAnimator = viewmodel.GetComponent<Animator>();
+            // Remember the shared framing pose so per-animation offsets are applied relative to it.
+            vmBasePos = viewmodel.transform.localPosition;
+            vmBaseRot = viewmodel.transform.localRotation;
+            vmBaseScale = viewmodel.transform.localScale;
+            vmBaseCached = true;
             viewmodel.SetActive(false);   // hidden until a pickup starts
         }
 
@@ -140,9 +177,41 @@ public class FirstPersonPickupHands : MonoBehaviour
             mirrorRoot.localScale = new Vector3(IsRightHandOccupied() ? -mag : mag, s.y, s.z);
         }
 
+        activeTrigger = trigger;             // remember which animation is playing, for per-anim framing
         if (viewmodel != null) viewmodel.SetActive(true);
+        ApplyFraming();
         if (viewmodelAnimator != null && !string.IsNullOrEmpty(trigger))
             viewmodelAnimator.SetTrigger(trigger);
+    }
+
+    // Look up the framing entry for a trigger (or null if none).
+    ViewmodelFraming FindFraming(string trigger)
+    {
+        if (string.IsNullOrEmpty(trigger) || framingOverrides == null) return null;
+        foreach (var f in framingOverrides)
+            if (f != null && f.trigger == trigger) return f;
+        return null;
+    }
+
+    // Apply the active animation's framing offset on top of the shared base pose (or the base pose if
+    // there's no entry for it). Called every frame while the viewmodel is shown, so Inspector edits to
+    // the offset update LIVE during a preview.
+    void ApplyFraming()
+    {
+        if (viewmodel == null || !vmBaseCached) return;
+        var f = FindFraming(activeTrigger);
+        if (f != null)
+        {
+            viewmodel.transform.localPosition = vmBasePos + f.positionOffset;
+            viewmodel.transform.localRotation = vmBaseRot * Quaternion.Euler(f.rotationOffset);
+            viewmodel.transform.localScale = Vector3.Scale(vmBaseScale, f.scaleMultiplier);
+        }
+        else
+        {
+            viewmodel.transform.localPosition = vmBasePos;
+            viewmodel.transform.localRotation = vmBaseRot;
+            viewmodel.transform.localScale = vmBaseScale;
+        }
     }
 
     void LateUpdate()
@@ -171,5 +240,10 @@ public class FirstPersonPickupHands : MonoBehaviour
         if (busy && realArmBones != null)
             for (int i = 0; i < realArmBones.Length; i++)
                 if (realArmBones[i] != null) realArmBones[i].localScale = Vector3.one * hiddenScale;
+
+        // Keep the per-animation framing applied every frame the viewmodel is visible (also makes the
+        // offset tunable LIVE while previewing with the debug key).
+        if (viewmodel != null && viewmodel.activeSelf)
+            ApplyFraming();
     }
 }
