@@ -67,6 +67,7 @@ public class WinScreen : MonoBehaviour
         ReleaseCursorAndInput();
 
         group.gameObject.SetActive(true);
+        group.transform.SetAsLastSibling();   // draw over the entire HUD
         StartCoroutine(Sequence());
     }
 
@@ -125,18 +126,11 @@ public class WinScreen : MonoBehaviour
 
     void BuildUI()
     {
-        var canvasGO = new GameObject("WinCanvas",
-            typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-        var canvas = canvasGO.GetComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 999; // above the gameplay HUD
-        var scaler = canvasGO.GetComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920f, 1080f);
-
+        // Housed under the ONE shared scene Canvas (no separate Canvas of its own). Show() brings this
+        // panel to the FRONT (SetAsLastSibling) so it covers the whole HUD; the CanvasGroup fades it in.
         var rootGO = new GameObject("WinPanel", typeof(RectTransform), typeof(CanvasGroup));
         var root = rootGO.GetComponent<RectTransform>();
-        root.SetParent(canvas.transform, false);
+        root.SetParent(UIRoot.Get().transform, false);
         Stretch(root);
         group = rootGO.GetComponent<CanvasGroup>();
 

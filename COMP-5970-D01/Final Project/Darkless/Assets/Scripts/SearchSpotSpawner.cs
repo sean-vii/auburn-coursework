@@ -27,8 +27,18 @@ public class SearchSpotSpawner : MonoBehaviour
     [Tooltip("Chance a completed search produces its item (0.7 = 70%). Copied onto every spawned spot.")]
     public float produceChance = 0.7f;
 
-    [Header("How many / where")]
-    [Tooltip("How many search-spot slimes to scatter.")]
+    [Header("Fixed spawn points (recommended)")]
+    [Tooltip("Drag an empty GameObject into the scene for each place you want a search-spot slime, and " +
+             "drop them here. When this list has entries (and Use Fixed Spawn Points is on), the slimes " +
+             "appear EXACTLY at these transforms and the random ring below is ignored — this is how you " +
+             "hand-place spots in your designed level.")]
+    public List<Transform> spawnPoints = new List<Transform>();
+    [Tooltip("Use the hand-placed Spawn Points above. Turn OFF to fall back to the old random-ring " +
+             "scatter (useful before you've placed points, or for a procedural feel).")]
+    public bool useFixedSpawnPoints = true;
+
+    [Header("How many / where (random-ring fallback)")]
+    [Tooltip("How many search-spot slimes to scatter. Only used by the random-ring fallback.")]
     public int spotCount = 5;
     [Tooltip("Center of the scatter area. If 'Center On Campfire' is on, the campfire's position is used " +
              "instead at Start.")]
@@ -64,6 +74,21 @@ public class SearchSpotSpawner : MonoBehaviour
         if (searchSpotPrefab == null)
         {
             Debug.LogWarning("SearchSpotSpawner: no searchSpotPrefab assigned — nothing to spawn.");
+            return;
+        }
+
+        // Preferred path: hand-placed spawn points. Spawn one slime at each of your placed empties,
+        // trusting the placement exactly (no ground-snap — you positioned it where you want it).
+        if (useFixedSpawnPoints && spawnPoints != null && spawnPoints.Count > 0)
+        {
+            var fixedContainer = new GameObject("SearchSpots (runtime)");
+            int n = 0;
+            foreach (var t in spawnPoints)
+            {
+                if (t == null) continue;
+                n++;
+                SpawnAt(t.position, t.rotation, fixedContainer.transform, n, groundSnap: false);
+            }
             return;
         }
 
@@ -113,20 +138,20 @@ public class SearchSpotSpawner : MonoBehaviour
 
             placed.Add(pos);
             made++;
-            SpawnOne(pos, container.transform, made);
+            SpawnAt(pos, Quaternion.Euler(0f, made * 57f, 0f), container.transform, made, groundSnap: true);
         }
 
         if (made < spotCount)
             Debug.LogWarning($"SearchSpotSpawner: only placed {made}/{spotCount} spots (area too tight?).");
     }
 
-    void SpawnOne(Vector3 pos, Transform parent, int index)
+    void SpawnAt(Vector3 pos, Quaternion rot, Transform parent, int index, bool groundSnap)
     {
-        var go = Instantiate(searchSpotPrefab, pos, Quaternion.Euler(0f, index * 57f, 0f), parent);
+        var go = Instantiate(searchSpotPrefab, pos, rot, parent);
         go.name = "SlimeSearchSpot_" + index;
         go.transform.localScale = Vector3.one * spotScale;
 
-        GroundSnap(go);
+        if (groundSnap) GroundSnap(go);
         FitBoxCollider(go);
 
         if (spotMaterial != null)

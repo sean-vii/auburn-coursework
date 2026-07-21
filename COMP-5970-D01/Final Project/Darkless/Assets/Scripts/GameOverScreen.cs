@@ -73,6 +73,7 @@ public class GameOverScreen : MonoBehaviour
         ReleaseCursorAndInput();
 
         group.gameObject.SetActive(true);
+        group.transform.SetAsLastSibling();   // draw over the entire HUD
         StartCoroutine(Sequence());
     }
 
@@ -134,20 +135,11 @@ public class GameOverScreen : MonoBehaviour
 
     void BuildUI()
     {
-        // A dedicated top-most overlay Canvas so we cover the whole HUD (mini-map, bars, prompts).
-        var canvasGO = new GameObject("GameOverCanvas",
-            typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-        var canvas = canvasGO.GetComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 999; // above the gameplay HUD Canvas
-        var scaler = canvasGO.GetComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920f, 1080f);
-
-        // Root panel (full-screen) with a CanvasGroup so we can fade EVERYTHING at once.
+        // Housed under the ONE shared scene Canvas (no separate Canvas of its own). Show() brings this
+        // panel to the FRONT (SetAsLastSibling) so it covers the whole HUD; the CanvasGroup fades it in.
         var rootGO = new GameObject("GameOverPanel", typeof(RectTransform), typeof(CanvasGroup));
         var root = rootGO.GetComponent<RectTransform>();
-        root.SetParent(canvas.transform, false);
+        root.SetParent(UIRoot.Get().transform, false);
         Stretch(root);
         group = rootGO.GetComponent<CanvasGroup>();
 

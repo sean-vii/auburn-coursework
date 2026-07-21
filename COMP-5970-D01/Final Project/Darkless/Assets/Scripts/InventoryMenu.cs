@@ -35,14 +35,36 @@ public class InventoryMenu : MonoBehaviour
     public Color barFillColor = new Color(0.8f, 0.7f, 0.35f, 0.95f);
     public Color barFullColor = new Color(0.9f, 0.25f, 0.2f, 0.95f);
 
+    [Header("Map")]
+    [Tooltip("The drawn map art of your play area. Draw it SQUARE and oriented so UP = north (world +Z) " +
+             "and RIGHT = east (world +X). It should frame exactly the PlayArea box. Leave empty and the " +
+             "map shows a placeholder until you have art — the player dot still works.")]
+    public Sprite mapImage;
+    [Tooltip("Tick if your art has east/west reversed (player dot slides the wrong way left/right).")]
+    public bool flipX = false;
+    [Tooltip("Tick if your art has north/south reversed (player dot slides the wrong way up/down).")]
+    public bool flipZ = false;
+    [Tooltip("Colour of the 'you are here' dot on the map.")]
+    public Color dotColor = new Color(0.35f, 0.8f, 1f, 1f);
+    [Tooltip("Dot colour if the player is somehow outside the play area (edge cases / testing).")]
+    public Color outOfBoundsDotColor = new Color(1f, 0.3f, 0.2f, 1f);
+    [Tooltip("Size of the player dot, in pixels.")]
+    public float dotSize = 18f;
+    [Tooltip("Show the 'you are here' dot. OFF (default) = the player must figure out where they are.")]
+    public bool showPlayerDot = false;
+
     const float PanelW = 460f;
     const float PanelH = 620f;
     const float Pad = 16f;
     const float HeaderH = 78f;
     const float RowH = 44f;
+    const float MapSize = 620f;   // the square map panel, shown left of the inventory panel
+    const float GroupGap = 28f;   // gap between the map panel and the inventory panel
 
     bool open;
-    Canvas canvas;
+    // The menu's root: a full-screen child of the ONE shared scene Canvas (UIRoot). Everything this
+    // menu builds lives under here; opening brings it to the front so it draws over the HUD.
+    RectTransform menuRoot;
     GameObject dim;
     RectTransform contentRoot;   // the scroll list's content (rows go here)
     TMP_Text weightLabel;
@@ -55,10 +77,17 @@ public class InventoryMenu : MonoBehaviour
     Button eatButton;
     ItemDefinition selectedItem;
 
+    // Map panel: the square map image and the "you are here" dot that rides on top of it.
+    RectTransform mapArea;
+    RectTransform playerDot;
+    Image playerDotImg;
+    TMP_Text mapHint;
+
     Backpack pack => backpack;
     PlayerInput playerInput;
     PlayerDarkness playerDarkness;
     PlayerStamina playerStamina;
+    Transform playerTransform;   // whose position drives the map dot
 
     void Start()
     {
@@ -70,6 +99,7 @@ public class InventoryMenu : MonoBehaviour
         {
             playerInput = player.GetComponent<PlayerInput>();
             playerStamina = player.GetComponent<PlayerStamina>();
+            playerTransform = player.transform;
         }
 
         BuildUI();
@@ -90,6 +120,10 @@ public class InventoryMenu : MonoBehaviour
         Keyboard kb = Keyboard.current;
         if (kb != null && kb[toggleKey].wasPressedThisFrame)
             SetOpen(!open);
+
+        // Keep the map dot on the player while the map is up. (The game is usually paused here, so the
+        // player isn't moving — but this also covers the case where pausing is turned off.)
+        if (open) UpdatePlayerDot();
     }
 
     void OnPackChanged()
@@ -106,12 +140,14 @@ public class InventoryMenu : MonoBehaviour
     void SetOpen(bool value)
     {
         open = value;
-        canvas.gameObject.SetActive(open);
+        menuRoot.gameObject.SetActive(open);
         if (open)
         {
+            menuRoot.SetAsLastSibling();   // draw on top of the HUD while the menu is up
             RefreshWeight();
             BuildList();
             CloseAction();
+            UpdatePlayerDot();
         }
 
         if (pauseWhileOpen) Time.timeScale = open ? 0f : 1f;
@@ -221,28 +257,29 @@ public class InventoryMenu : MonoBehaviour
 
     void BuildUI()
     {
-        var canvasGO = new GameObject("InventoryCanvas",
-            typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-        canvas = canvasGO.GetComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 500; // above the HUD, below the game-over screen (999)
-        var scaler = canvasGO.GetComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920f, 1080f);
+        // House this menu under the ONE shared scene Canvas (no separate Canvas of its own), so all UI
+        // lives under a single Canvas object. A full-screen child holds everything; SetOpen brings it
+        // to the front so it draws over the HUD.
+        var rootGO = new GameObject("InventoryMenu", typeof(RectTransform));
+        menuRoot = rootGO.GetComponent<RectTransform>();
+        menuRoot.SetParent(UIRoot.Get().transform, false);
+        Stretch(menuRoot);
 
         // Dim backdrop (also eats clicks so nothing behind the menu is hit).
         dim = new GameObject("Dim", typeof(RectTransform), typeof(Image));
-        dim.transform.SetParent(canvas.transform, false);
+        dim.transform.SetParent(menuRoot, false);
         Stretch(dim.GetComponent<RectTransform>());
         dim.GetComponent<Image>().color = dimColor;
 
         // Centre panel.
         var panel = new GameObject("Panel", typeof(RectTransform), typeof(Image));
         var panelRT = panel.GetComponent<RectTransform>();
-        panelRT.SetParent(canvas.transform, false);
+        panelRT.SetParent(menuRoot, false);
         panelRT.anchorMin = panelRT.anchorMax = panelRT.pivot = new Vector2(0.5f, 0.5f);
         panelRT.sizeDelta = new Vector2(PanelW, PanelH);
-        panelRT.anchoredPosition = Vector2.zero;
+        // Sit the inventory panel to the RIGHT so the map panel can sit to its left; the two together
+        // are centred on screen as one merged "open your pack + map" screen.
+        panelRT.anchoredPosition = new Vector2((MapSize + GroupGap) / 2f, 0f);
         panel.GetComponent<Image>().color = panelColor;
 
         // --- Weight display, TOP-LEFT of the panel ---
@@ -272,7 +309,112 @@ public class InventoryMenu : MonoBehaviour
         weightFill.color = barFillColor;
 
         BuildScrollList(panelRT);
+        BuildMapPanel();
         BuildActionMenu();
+    }
+
+    // ------------------------------------------------------------------ map
+
+    // The map panel: a square to the LEFT of the inventory panel showing your drawn map art of the
+    // play area, with a live "you are here" dot on top. The map is FIXED (it does not follow the
+    // player) — the whole play area is always shown and only the dot moves.
+    void BuildMapPanel()
+    {
+        var mapPanel = new GameObject("MapPanel", typeof(RectTransform), typeof(Image));
+        var mpRT = mapPanel.GetComponent<RectTransform>();
+        mpRT.SetParent(menuRoot, false);
+        mpRT.anchorMin = mpRT.anchorMax = mpRT.pivot = new Vector2(0.5f, 0.5f);
+        mpRT.sizeDelta = new Vector2(MapSize, MapSize);
+        mpRT.anchoredPosition = new Vector2(-(PanelW + GroupGap) / 2f, 0f);
+        mapPanel.GetComponent<Image>().color = panelColor;
+
+        // Title.
+        var title = MakeText("MapTitle", mpRT, "MAP", 22f, TextAlignmentOptions.Center);
+        var ttRT = title.rectTransform;
+        ttRT.anchorMin = ttRT.anchorMax = ttRT.pivot = new Vector2(0.5f, 1f);
+        ttRT.anchoredPosition = new Vector2(0f, -Pad);
+        ttRT.sizeDelta = new Vector2(MapSize - Pad * 2f, 28f);
+        title.fontStyle = FontStyles.Bold;
+
+        // The square map image, filling the panel below the title. It fills the square EXACTLY (no
+        // letterboxing) so the play area maps 1:1 onto it and the dot lands in the right place — this
+        // is why the art should be drawn square.
+        float side = MapSize - Pad * 2f - 34f;
+        // Size the map area to the IMAGE's aspect (so it isn't stretched); the world->map dot mapping
+        // then lines up 1:1 as long as the PlayArea uses the same aspect ratio.
+        float aspect = (mapImage != null && mapImage.rect.height > 0f) ? mapImage.rect.width / mapImage.rect.height : 1f;
+        float areaW = side, areaH = side;
+        if (aspect >= 1f) areaH = side / aspect; else areaW = side * aspect;
+        var areaGO = new GameObject("MapImage", typeof(RectTransform), typeof(Image));
+        mapArea = areaGO.GetComponent<RectTransform>();
+        mapArea.SetParent(mpRT, false);
+        mapArea.anchorMin = mapArea.anchorMax = mapArea.pivot = new Vector2(0.5f, 0.5f);
+        mapArea.sizeDelta = new Vector2(areaW, areaH);
+        mapArea.anchoredPosition = new Vector2(0f, -17f);
+        var areaImg = areaGO.GetComponent<Image>();
+        if (mapImage != null)
+        {
+            areaImg.sprite = mapImage;
+            areaImg.type = Image.Type.Simple;
+            areaImg.preserveAspect = false;   // fill the square so the dot maps 1:1
+            areaImg.color = Color.white;
+        }
+        else
+        {
+            areaImg.color = new Color(0.10f, 0.10f, 0.12f, 1f);
+        }
+
+        // Placeholder hint until real art is assigned.
+        if (mapImage == null)
+        {
+            mapHint = MakeText("MapHint", mapArea, "(assign map art\nin the Inspector)", 20f, TextAlignmentOptions.Center);
+            Stretch(mapHint.rectTransform);
+            mapHint.color = new Color(1f, 1f, 1f, 0.45f);
+        }
+
+        // The "you are here" dot — only built when enabled. With it off, the player has no position
+        // marker and must read the map against the world themselves.
+        if (showPlayerDot)
+        {
+            var dotGO = new GameObject("PlayerDot", typeof(RectTransform), typeof(Image));
+            playerDot = dotGO.GetComponent<RectTransform>();
+            playerDot.SetParent(mapArea, false);
+            playerDot.sizeDelta = new Vector2(dotSize, dotSize);
+            playerDot.pivot = new Vector2(0.5f, 0.5f);
+            playerDotImg = dotGO.GetComponent<Image>();
+            playerDotImg.color = dotColor;
+            playerDotImg.raycastTarget = false;
+        }
+    }
+
+    // Place the map dot at the player's current position within the play area.
+    void UpdatePlayerDot()
+    {
+        if (playerDot == null) return;
+
+        var area = PlayArea.Instance;
+        if (area == null || playerTransform == null)
+        {
+            playerDot.gameObject.SetActive(false);
+            return;
+        }
+        playerDot.gameObject.SetActive(true);
+
+        Vector2 n = area.WorldToNormalized(playerTransform.position); // (0,0)=SW corner, (1,1)=NE corner
+        if (flipX) n.x = 1f - n.x;
+        if (flipZ) n.y = 1f - n.y;
+
+        bool inside = n.x >= 0f && n.x <= 1f && n.y >= 0f && n.y <= 1f;
+        n.x = Mathf.Clamp01(n.x);
+        n.y = Mathf.Clamp01(n.y);
+
+        // Anchor the dot at that fraction of the map image, so it always lands on the right spot
+        // regardless of the panel's pixel size.
+        playerDot.anchorMin = playerDot.anchorMax = n;
+        playerDot.anchoredPosition = Vector2.zero;
+
+        if (playerDotImg != null)
+            playerDotImg.color = inside ? dotColor : outOfBoundsDotColor;
     }
 
     void BuildScrollList(RectTransform panelRT)
@@ -327,7 +469,7 @@ public class InventoryMenu : MonoBehaviour
     {
         actionPanel = new GameObject("ActionMenu", typeof(RectTransform), typeof(Image));
         var apRT = actionPanel.GetComponent<RectTransform>();
-        apRT.SetParent(canvas.transform, false);
+        apRT.SetParent(menuRoot, false);
         apRT.anchorMin = apRT.anchorMax = apRT.pivot = new Vector2(0.5f, 0.5f);
         apRT.sizeDelta = new Vector2(300f, 250f);
         apRT.anchoredPosition = Vector2.zero;
