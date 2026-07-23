@@ -87,20 +87,60 @@ which until you try it.
    about a minute. (To start closer to night, pick **DayNightManager** in the Hierarchy and set
    **Time Of Day** to about `0.6`.)
 
-## Assets used
+## External assets and resources used
 
-| Asset / resource | Used for | Link |
+Everything below that isn't marked "made by me" is a third-party asset used under its own license
+(Unity Asset Store EULA, CC/Sketchfab, Quaternius CC0, Pixabay Content License, Fontshare, or Mixamo /
+Adobe account terms). Anything without a store link was a free low-poly model imported as a raw FBX/OBJ.
+
+### 3D models — characters, props, and environment
+| Asset / resource | Author | Used for | Link |
+|---|---|---|---|
+| **Low Poly Environment — Nature (Free)** | Polytope Studio | Terrain layers, grass, pine trees, rocks, mushrooms, flowers, skybox, and the apple/pear-tree & ore-rock prefabs | https://assetstore.unity.com/packages/3d/environments/low-poly-environment-nature-free-lowpoly-medieval-fantasy-series-187052 |
+| **CraftPix low-poly packs** (3 packs — ~40 stones, ~21 trees, ~28 medieval props) | CraftPix.net | The bulk of the forest: terrain trees, rocks, and scattered props; the **bushes** are recolored from these | https://craftpix.net/ |
+| **Survival pack** (low-poly FBX) | Quaternius | Backpack (crafting station), bear traps, torch / wooden torch, bonfire, and other survival props (flat-color, recolored in-engine) | https://quaternius.com/packs/survival.html |
+| **Starter Assets: Third Person Controller (URP)** (+ Cinemachine) | Unity Technologies | The player character/armature and camera rig (used first-person) | https://assetstore.unity.com/packages/essentials/starter-assets-thirdperson-urp-196526 |
+| **Mimic Prototype** | Layer Lab | The monster (procedural IK creature, reskinned pitch-black) | https://assetstore.unity.com/packages/3d/characters/creatures/mimic-prototype-245997 |
+| **Low Poly Car** | Sketchfab | The escape car | https://sketchfab.com/3d-models/low-poly-car-6d5b1145b4fd475094be9e152d4aeff8 |
+| **A Low Poly Key** | Sketchfab | The key item | https://sketchfab.com/3d-models/a-low-poly-key-90df0b2640e04481862aff7d89a66a35 |
+| Low-poly **slime / creature** (`Slime.fbx`) | Free low-poly model | The night search creatures | Free low-poly model (imported as FBX) |
+| Low-poly **flashlight, stick, log, apple, strawberry** | Free low-poly models | Held flashlight; torch sticks; log fuel; fruit/food pickups | Free low-poly models (imported as OBJ/FBX) |
+
+### Visual effects
+| Asset / resource | Author | Used for | Link |
+|---|---|---|---|
+| **Full Opaque Fire** (VFX particle pack) | Unity Asset Store | Stylized fire for the campfire and torches | https://assetstore.unity.com/packages/vfx/full-opaque-fire-312221 |
+
+### Animations
+| Asset / resource | Author | Used for | Link |
+|---|---|---|---|
+| **Mixamo** humanoid clips | Adobe | Pick-up / gather / search animations on the player | https://www.mixamo.com |
+
+### Music and sound effects
+| Track / SFX | Used for | Link |
 |---|---|---|
-| **Low Poly Environment — Nature (Free)** — Polytope Studio | Terrain, trees, grass, rocks, sky, props | https://assetstore.unity.com/packages/3d/environments/low-poly-environment-nature-free-lowpoly-medieval-fantasy-series-187052 |
-| **Starter Assets: Third Person Controller (URP)** — Unity (+ Cinemachine) | First-person player movement, camera, and player character | https://assetstore.unity.com/packages/essentials/starter-assets-thirdperson-urp-196526 |
-| **Mimic Prototype** | The monster | https://assetstore.unity.com/packages/3d/characters/creatures/mimic-prototype-245997 |
-| **Full Opaque Fire** | Stylized fire effect for the campfire and torches | Unity Asset Store (free) |
-| **Survival low-poly prop pack** | Backpack (crafting station), bear traps, torch & bonfire props | Unity Asset Store (free, imported as FBX) |
-| **Clash Grotesk** — Indian Type Foundry | UI font | https://www.fontshare.com/fonts/clash-grotesk |
-| **Mixamo** — Adobe | Pick-up / search animations | https://www.mixamo.com |
-| Low-poly **car**, **key**, and **creature** models | Escape car, key item, night search creatures | Free low-poly models (imported as FBX) |
-| **Pixabay** audio — "Atmospheric documentary", "Nature forest daytime", "Night forest, frogs & crickets", plus monster / death / bear-trap sound effects | Music, ambience, and sound effects | https://pixabay.com |
+| "Atmospheric documentary" music | Constant background ambience bed | https://pixabay.com/music/meditationspiritual-atmospheric-documentary-509386/ |
+| "Nature — forest daytime" | Daytime audio layer | https://pixabay.com/sound-effects/nature-forest-daytime-446356/ |
+| "Nature — night forest, frogs & crickets" | Nighttime audio layer | https://pixabay.com/sound-effects/nature-night-forest-with-frogs-and-crickets-for-sleep-451153/ |
+| Monster footstep / rustle, player death (bone-break), bear-trap SFX | Monster, death, and hazard sound effects | https://pixabay.com/ |
+| In-engine interaction & UI sounds (pickups, crafting, button clicks) | **Generated procedurally at runtime** — no external audio files | — (made by me) |
 
-The interaction and UI sound effects (pickups, crafting, button clicks) are generated in-engine, so
-they don't use any external audio files. All Pixabay audio is free under the Pixabay Content License,
-and the Asset Store packages are used under their Unity Asset Store licenses.
+All Pixabay audio is free under the Pixabay Content License.
+
+### UI, fonts, and textures
+| Asset / resource | Author | Used for | Link |
+|---|---|---|---|
+| **Clash Grotesk** | Indian Type Foundry (Fontshare) | UI font | https://www.fontshare.com/fonts/clash-grotesk |
+| **TextMesh Pro** | Unity Technologies | Text rendering (built-in Unity package) | https://docs.unity3d.com/Packages/com.unity.textmeshpro@latest |
+| Pack textures (`T_*.png`) | Ship with the Polytope / CraftPix / Quaternius packs above | Albedo textures for the environment, trees, and props | (see the 3D-model links above) |
+| Hand-drawn **map art** (`GameMap.png`) | **Made by me** | The in-game handheld map | — (made by me) |
+
+### Code references
+| Resource | Used for |
+|---|---|
+| Unity **Starter Assets** controller scripts | Base movement/camera scripts, modified for first-person |
+| **Mimic Prototype** scripts (`Mimic.cs`, `Leg.cs`, `CylinderMesh.cs`) | The monster's procedural-leg rendering |
+| **Full Opaque Fire** `VFX_FireController.cs` | Driving fire intensity/color from campfire fuel |
+
+All remaining gameplay code (light/darkness meter, backpack, crafting, day/night, monster AI, escape loop,
+UI, etc.) is original and written for this project.
