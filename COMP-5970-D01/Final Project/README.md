@@ -100,7 +100,7 @@ Adobe account terms). Anything without a store link was a free low-poly model im
 | **CraftPix low-poly packs** (3 packs — ~40 stones, ~21 trees, ~28 medieval props) | CraftPix.net | The bulk of the forest: terrain trees, rocks, and scattered props; the **bushes** are recolored from these | https://craftpix.net/ |
 | **Survival pack** (low-poly FBX) | Quaternius | Backpack (crafting station), bear traps, torch / wooden torch, bonfire, and other survival props (flat-color, recolored in-engine) | https://quaternius.com/packs/survival.html |
 | **Starter Assets: Third Person Controller (URP)** (+ Cinemachine) | Unity Technologies | The player character/armature and camera rig (used first-person) | https://assetstore.unity.com/packages/essentials/starter-assets-thirdperson-urp-196526 |
-| **Mimic Prototype** | Layer Lab | The monster (procedural IK creature, reskinned pitch-black) | https://assetstore.unity.com/packages/3d/characters/creatures/mimic-prototype-245997 |
+| **Mimic Prototype** | Unity Asset Store | The monster (procedural IK creature, reskinned pitch-black) | https://assetstore.unity.com/packages/3d/characters/creatures/mimic-prototype-245997 |
 | **Low Poly Car** | Sketchfab | The escape car | https://sketchfab.com/3d-models/low-poly-car-6d5b1145b4fd475094be9e152d4aeff8 |
 | **A Low Poly Key** | Sketchfab | The key item | https://sketchfab.com/3d-models/a-low-poly-key-90df0b2640e04481862aff7d89a66a35 |
 | Low-poly **slime / creature** (`Slime.fbx`) | Free low-poly model | The night search creatures | Free low-poly model (imported as FBX) |
