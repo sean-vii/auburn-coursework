@@ -18,6 +18,9 @@ public class InventoryMenu : MonoBehaviour
     [Header("Source")]
     [Tooltip("The backpack to show. Leave empty to auto-find the one in the scene.")]
     public Backpack backpack;
+    [Tooltip("Items to ALWAYS show as fixed rows, in order (even when you have 0) — e.g. Apple, Berry, " +
+             "Stick, Log. Anything else you're carrying (like keys) is listed below these when held.")]
+    public List<ItemDefinition> allItems = new List<ItemDefinition>();
 
     [Header("Open / close")]
     [Tooltip("Key that toggles the inventory open/closed.")]
@@ -75,6 +78,7 @@ public class InventoryMenu : MonoBehaviour
     GameObject actionPanel;
     TMP_Text actionTitle;
     Button eatButton;
+    Button equipButton;
     ItemDefinition selectedItem;
 
     // Map panel: the square map image and the "you are here" dot that rides on top of it.
@@ -87,12 +91,14 @@ public class InventoryMenu : MonoBehaviour
     PlayerInput playerInput;
     PlayerDarkness playerDarkness;
     PlayerStamina playerStamina;
+    Torch torch;                 // the held torch, so a Tool item can be equipped
     Transform playerTransform;   // whose position drives the map dot
 
     void Start()
     {
         if (backpack == null) backpack = FindFirstObjectByType<Backpack>();
         playerDarkness = FindFirstObjectByType<PlayerDarkness>();
+        torch = FindFirstObjectByType<Torch>();
 
         var player = GameObject.FindGameObjectWithTag("Player");
         if (player != null)
@@ -166,8 +172,9 @@ public class InventoryMenu : MonoBehaviour
     {
         selectedItem = item;
         actionTitle.text = item.displayName;
-        // Only Food can be eaten (for now food is all we have; other categories add actions later).
+        // Food can be eaten; a Tool (the crafted Torch) can be equipped. Everything can be dropped.
         eatButton.gameObject.SetActive(item.category == ItemCategory.Food);
+        equipButton.gameObject.SetActive(item.category == ItemCategory.Tool);
         actionPanel.SetActive(true);
     }
 
@@ -176,6 +183,15 @@ public class InventoryMenu : MonoBehaviour
         if (selectedItem == null || backpack == null) return;
         if (playerStamina != null) playerStamina.Restore(selectedItem.staminaValue); // food -> stamina
         backpack.Remove(selectedItem, 1); // fires Changed -> list + weight refresh
+    }
+
+    void Equip()
+    {
+        if (selectedItem == null || torch == null) return;
+        // Torch.Equip stows the flashlight, spends a Torch item (or resumes a partly-burned one), lights it.
+        bool ok = torch.Equip(out string msg);
+        if (!string.IsNullOrEmpty(msg)) SubtitleUI.Say(msg, 2f);
+        if (ok) SetOpen(false);   // close the pack so you're back in the game holding the torch
     }
 
     void Drop()
@@ -204,43 +220,88 @@ public class InventoryMenu : MonoBehaviour
 
         if (backpack == null) return;
 
+        // First: a FIXED row for every known item, in order, even at 0. Then any OTHER carried items
+        // (e.g. keys) that aren't in the fixed list, so nothing you're holding is ever hidden.
+        var shown = new HashSet<ItemDefinition>();
+        if (allItems != null)
+        {
+            foreach (var item in allItems)
+            {
+                if (item == null || shown.Contains(item)) continue;
+                MakeRow(item, backpack.Count(item));
+                shown.Add(item);
+            }
+        }
         foreach (var pairKV in backpack.Items)
         {
             ItemDefinition item = pairKV.Key;
-            int count = pairKV.Value;
-            if (item == null || count <= 0) continue;
-            MakeRow(item, count);
+            if (item == null || pairKV.Value <= 0 || shown.Contains(item)) continue;
+            MakeRow(item, pairKV.Value);
         }
     }
 
     void MakeRow(ItemDefinition item, int count)
     {
+        bool empty = count <= 0;             // rows for items you don't have yet
+        float alpha = empty ? 0.4f : 1f;     // the whole row goes semi-transparent when empty
+
         var rowGO = new GameObject("Row_" + item.displayName,
             typeof(RectTransform), typeof(Image), typeof(Button), typeof(LayoutElement));
         rowGO.transform.SetParent(contentRoot, false);
         rowGO.GetComponent<LayoutElement>().preferredHeight = RowH;
 
+        Color baseCol = rowColor; baseCol.a *= alpha;
         var img = rowGO.GetComponent<Image>();
-        img.color = rowColor;
+        img.color = baseCol;
 
         var btn = rowGO.GetComponent<Button>();
+        btn.interactable = !empty;           // can't open an action menu on an item you don't have
         var colors = btn.colors;
-        colors.normalColor = rowColor;
-        colors.highlightedColor = rowHoverColor;
-        colors.pressedColor = rowHoverColor;
-        colors.selectedColor = rowColor;
+        Color hover = rowHoverColor; hover.a *= alpha;
+        colors.normalColor = baseCol;
+        colors.highlightedColor = empty ? baseCol : hover;
+        colors.pressedColor = empty ? baseCol : hover;
+        colors.selectedColor = baseCol;
+        colors.disabledColor = baseCol;
         btn.colors = colors;
         ItemDefinition captured = item;
         btn.onClick.AddListener(() => OnRowClicked(captured));
 
-        float weight = item.CountsTowardWeight ? item.weightPerUnit * count : 0f;
-        string line = item.CountsTowardWeight
-            ? $"{item.displayName}   x{count}      {weight:0.#} kg"
-            : $"{item.displayName}   x{count}";
-        var txt = MakeText("Label", rowGO.transform, line, 20f, TextAlignmentOptions.MidlineLeft);
-        var trt = txt.rectTransform;
-        trt.anchorMin = Vector2.zero; trt.anchorMax = Vector2.one;
-        trt.offsetMin = new Vector2(14f, 0f); trt.offsetMax = new Vector2(-14f, 0f);
+        // --- ICON (far left) ---
+        float iconSize = RowH - 12f;
+        var iconGO = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+        var iconRT = iconGO.GetComponent<RectTransform>();
+        iconRT.SetParent(rowGO.transform, false);
+        iconRT.anchorMin = iconRT.anchorMax = iconRT.pivot = new Vector2(0f, 0.5f);
+        iconRT.anchoredPosition = new Vector2(10f, 0f);
+        iconRT.sizeDelta = new Vector2(iconSize, iconSize);
+        var iconImg = iconGO.GetComponent<Image>();
+        iconImg.raycastTarget = false;
+        iconImg.preserveAspect = true;
+        if (item.icon != null) iconImg.sprite = item.icon;
+        // white tint when there's art, else a faint placeholder square.
+        iconImg.color = item.icon != null ? new Color(1f, 1f, 1f, alpha) : new Color(1f, 1f, 1f, 0.12f * alpha);
+
+        float textLeft = 10f + iconSize + 12f;   // start the name to the right of the icon
+
+        // --- NAME + count (left) ---
+        var nameTxt = MakeText("Label", rowGO.transform, $"{item.displayName}   x{count}", 20f, TextAlignmentOptions.MidlineLeft);
+        nameTxt.color = new Color(1f, 1f, 1f, alpha);
+        var nrt = nameTxt.rectTransform;
+        nrt.anchorMin = Vector2.zero; nrt.anchorMax = Vector2.one;
+        nrt.offsetMin = new Vector2(textLeft, 0f);
+        nrt.offsetMax = new Vector2(-96f, 0f);   // leave room for the weight on the right
+
+        // --- WEIGHT (right) ---
+        if (item.CountsTowardWeight)
+        {
+            var wTxt = MakeText("Weight", rowGO.transform, $"{item.weightPerUnit * count:0.#} kg", 18f, TextAlignmentOptions.MidlineRight);
+            wTxt.color = new Color(1f, 1f, 1f, alpha * 0.85f);
+            var wrt = wTxt.rectTransform;
+            wrt.anchorMin = Vector2.zero; wrt.anchorMax = Vector2.one;
+            wrt.offsetMin = new Vector2(textLeft, 0f);
+            wrt.offsetMax = new Vector2(-14f, 0f);
+        }
     }
 
     void RefreshWeight()
@@ -471,7 +532,7 @@ public class InventoryMenu : MonoBehaviour
         var apRT = actionPanel.GetComponent<RectTransform>();
         apRT.SetParent(menuRoot, false);
         apRT.anchorMin = apRT.anchorMax = apRT.pivot = new Vector2(0.5f, 0.5f);
-        apRT.sizeDelta = new Vector2(300f, 250f);
+        apRT.sizeDelta = new Vector2(300f, 320f);
         apRT.anchoredPosition = Vector2.zero;
         actionPanel.GetComponent<Image>().color = new Color(0.1f, 0.1f, 0.12f, 0.99f);
 
@@ -482,9 +543,10 @@ public class InventoryMenu : MonoBehaviour
         tRT.sizeDelta = new Vector2(280f, 34f);
         actionTitle.fontStyle = FontStyles.Bold;
 
-        eatButton = MakeButton(apRT, "Eat", new Vector2(0f, 8f), Eat);
-        MakeButton(apRT, "Drop", new Vector2(0f, -52f), Drop);
-        MakeButton(apRT, "Cancel", new Vector2(0f, -112f), CloseAction);
+        equipButton = MakeButton(apRT, "Equip", new Vector2(0f, 40f), Equip);
+        eatButton = MakeButton(apRT, "Eat", new Vector2(0f, -18f), Eat);
+        MakeButton(apRT, "Drop", new Vector2(0f, -76f), Drop);
+        MakeButton(apRT, "Cancel", new Vector2(0f, -134f), CloseAction);
     }
 
     // ------------------------------------------------------------------ tiny UI helpers
@@ -529,6 +591,7 @@ public class InventoryMenu : MonoBehaviour
         colors.pressedColor = new Color(0.4f, 0.36f, 0.2f, 1f);
         colors.selectedColor = colors.normalColor;
         btn.colors = colors;
+        btn.onClick.AddListener(() => Sfx.Click());
         btn.onClick.AddListener(onClick);
 
         var txt = MakeText("Text", rt, label, 22f, TextAlignmentOptions.Center);

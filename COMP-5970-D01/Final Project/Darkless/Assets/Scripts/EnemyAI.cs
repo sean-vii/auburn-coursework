@@ -34,8 +34,6 @@ public class EnemyAI : MonoBehaviour
     [Tooltip("Attacking base speed in the dark. Keep a touch under the player's sprint so they can " +
              "'just' outrun it with a torch (GDD §5).")]
     public float attackSpeed = 4.2f;
-    [Tooltip("How much attack speed survives in full light (0.15 = crawls at 15% speed when lit).")]
-    [Range(0f, 1f)] public float lightSlowFactor = 0.15f;
     [Tooltip("Retreat speed multiplier: when it flees it moves this many times its attack speed " +
              "(5 = it panics and bolts for cover).")]
     public float retreatSpeedMultiplier = 5f;
@@ -53,27 +51,54 @@ public class EnemyAI : MonoBehaviour
     public float stalkDistanceMax = 13f;
     [Tooltip("Seconds between teleports to a fresh dark spot while stalking.")]
     public float teleportInterval = 2.5f;
-    [Tooltip("Patience before it commits to an attack (randomised each time it starts stalking).")]
-    public float patienceMin = 3f;
-    public float patienceMax = 7f;
-    [Tooltip("It will only pounce once it's this close (and in the dark) after its patience runs out.")]
-    public float attackTriggerRange = 12f;
 
     [Header("Attack / give-up")]
     [Tooltip("Contact range: within this (horizontal metres) the player dies.")]
     public float killDistance = 1.5f;
-    [Tooltip("If the player stays safe in the light this long during an attack, it gives up to Stalking.")]
+    [Tooltip("If the player stays safe in the CAMPFIRE (the hard-barrier light) this long during an " +
+             "attack, it gives up to Stalking.")]
     public float giveUpTime = 3f;
+    [Tooltip("If the player opens up at least this much distance during an attack, the Mimic breaks off " +
+             "(→ Stalking or Reposition). This is the 'run away' escape — pull far enough and it stops.")]
+    public float escapeDistance = 16f;
 
-    [Header("Aggression")]
+    [Header("Light slow (attacking)")]
+    [Tooltip("Light doesn't stop the Mimic (except the campfire barrier) — it SLOWS it, linearly with " +
+             "the light's strength (LightZone.slowStrength). Slow is temporary (only while lit). At MAX " +
+             "aggression the slow is only this fraction as effective, so a frenzied Mimic barely cares " +
+             "about your torch (0.25 = a quarter as slow at full aggression).")]
+    [Range(0f, 1f)] public float aggressionSlowFloor = 0.25f;
+
+    [Header("Aggression & the night ramp")]
+    [Tooltip("Drive aggression from the night number automatically (recommended). The Mimic gets more " +
+             "aggressive every night: shorter stalks before it decides, and a higher chance that " +
+             "decision is an ATTACK. Turn off to set 'aggression' by hand.")]
+    public bool aggressionFromNight = true;
+    [Tooltip("Night the Mimic reaches FULL aggression (frenzied). Night 1 = calmest.")]
+    public int nightsToMaxAggression = 6;
     [Range(0f, 1f)]
-    [Tooltip("How aggressive the monster is. Higher = attacks sooner (shorter patience), resumes " +
-             "stalking faster after being scared off, and repositions more often. Safe to change at " +
-             "runtime — e.g. the night difficulty ramp can crank it up over the course of the game.")]
-    public float aggression = 0.5f;
+    [Tooltip("How aggressive the monster is (0 calm … 1 frenzied). Auto-set from the night when " +
+             "'Aggression From Night' is on. Higher = shorter stalks before deciding, weaker light-slow, " +
+             "faster re-engage.")]
+    public float aggression = 0f;
     [Tooltip("Base seconds it lies low after being scared off before it resumes stalking (at neutral " +
              "aggression). Aggression scales this down — higher aggression = comes back sooner.")]
     public float reengageDelay = 3f;
+
+    [Header("Attack-or-retreat decision (ramps per night)")]
+    [Tooltip("After stalking a while the Mimic DECIDES: attack, or give up and retreat. This is its " +
+             "chance to ATTACK on NIGHT 1 (so early on it mostly retreats — ~1 attack the first night).")]
+    [Range(0f, 1f)] public float attackChanceNight1 = 0.15f;
+    [Tooltip("Attack chance ADDED each night after the first (+0.15 = 15% more per night).")]
+    [Range(0f, 1f)] public float attackChancePerNight = 0.15f;
+    [Tooltip("Maximum attack chance, however late the night (caps the ramp).")]
+    [Range(0f, 1f)] public float attackChanceMax = 0.90f;
+    [Tooltip("Seconds it stalks before each decision at LOW aggression (night 1) — long, so attacks are " +
+             "RARE early. Roughly (night length / this) × attack-chance ≈ attacks that night.")]
+    public float decisionIntervalMax = 55f;
+    [Tooltip("Seconds it stalks before each decision at FULL aggression (late game) — short, so it " +
+             "attacks often. A ±25% jitter is applied so it isn't clockwork.")]
+    public float decisionIntervalMin = 18f;
 
     [Header("Vision")]
     [Tooltip("Beyond this distance the player is considered NOT to see the monster (fog hides it), " +
@@ -92,6 +117,13 @@ public class EnemyAI : MonoBehaviour
     [Range(0f, 1f)] public float rustleVolume = 1f;
     [Tooltip("Distance at which the monster's own sounds fade out (linear 3D rolloff).")]
     public float soundMaxDistance = 35f;
+    [Tooltip("Chance it rustles on each stalk TELEPORT at LOW aggression (night 1) — kept low so it " +
+             "isn't heard too often early. A guaranteed rustle still plays when it STARTS stalking, so " +
+             "you always get at least one cue before an attack.")]
+    [Range(0f, 1f)] public float rustleChanceMin = 0.15f;
+    [Tooltip("Chance it rustles on each teleport at FULL aggression (late game) — a frenzied Mimic is " +
+             "noisier. Scales linearly with aggression between min and max.")]
+    [Range(0f, 1f)] public float rustleChanceMax = 0.6f;
 
     [Header("Debug marker (testing only)")]
     [Tooltip("Show an always-visible beacon above the monster + an on-screen readout of its state " +
@@ -118,7 +150,7 @@ public class EnemyAI : MonoBehaviour
     Vector3 retreatDir; // the (fixed, random) heading it flees along this retreat
     bool visible = true;
     float teleportTimer;
-    float patienceTimer;
+    float decisionTimer;   // counts down while Stalking; at 0 it rolls attack-or-retreat
     float reengageTimer;
     float playerSafeTimer;
     bool retreatVanished; // true once Retreat has broken line of sight — it then stays hidden
@@ -221,14 +253,19 @@ public class EnemyAI : MonoBehaviour
         if (!showDebugMarker || target == null) return;
         GUIStyle style = new GUIStyle(GUI.skin.label) { fontSize = 16, fontStyle = FontStyle.Bold };
         style.normal.textColor = markerColor;
-        string info = $"MIMIC:  {state}    {FlatDistanceToPlayer():0.0} m    {(visible ? "visible" : "HIDDEN")}";
-        GUI.Label(new Rect(Screen.width * 0.5f - 180f, 8f, 500f, 26f), info, style);
+        string info = $"MIMIC:  {state}   N{CurrentNight}  atk {NightAttackChance:P0}   " +
+                      $"{FlatDistanceToPlayer():0.0} m   {(visible ? "visible" : "HIDDEN")}";
+        GUI.Label(new Rect(Screen.width * 0.5f - 240f, 8f, 620f, 26f), info, style);
     }
 
     void Update()
     {
         if (target == null) return;
         if (cam == null) cam = Camera.main; // cache lazily; the player camera may spawn after us
+
+        // Night ramp: aggression rises each night (night 1 = calm, nightsToMaxAggression = frenzied).
+        if (aggressionFromNight)
+            aggression = Mathf.Clamp01((CurrentNight - 1f) / Mathf.Max(1, nightsToMaxAggression - 1));
 
         // ---- The master interrupt: light on us / daytime always sends us fleeing. ----
         // Enter Retreat and fall straight through to Tick it THIS frame — no stall, no downtime.
@@ -296,7 +333,9 @@ public class EnemyAI : MonoBehaviour
         state = State.Stalking;
         SetVisible(false);
         teleportTimer = 0f;
-        patienceTimer = Random.Range(patienceMin, patienceMax) * AggressionTimeScale;
+        // How long it stalks before it decides attack-or-retreat: long at low aggression, short when
+        // frenzied, with a ±25% jitter so it isn't clockwork.
+        decisionTimer = DecisionInterval * Random.Range(0.75f, 1.25f);
         if (walkSource != null) walkSource.Stop();
         // Snap to a dark spot right away so it's lurking at a sensible distance.
         TeleportToDark(preferOutOfView: true, mustBeOutOfView: false);
@@ -314,15 +353,21 @@ public class EnemyAI : MonoBehaviour
         {
             teleportTimer = teleportInterval * AggressionTimeScale;
             TeleportToDark(preferOutOfView: true, mustBeOutOfView: false);
-            // A fresh rustle from the new spot — the moving directional cue to where it lurks.
-            PlayStalkRustle();
+            // A fresh rustle from the new spot (the directional cue) — but only SOMETIMES, so it isn't
+            // heard too often. The chance rises with aggression (a frenzied Mimic is noisier). The
+            // guaranteed rustle in EnterStalking still ensures at least one cue before any attack.
+            if (Random.value < RustleChance) PlayStalkRustle();
         }
 
-        patienceTimer -= Time.deltaTime;
-        float dist = FlatDistanceToPlayer();
-        // Commit once patience is spent AND we're close and standing in the dark.
-        if (patienceTimer <= 0f && dist <= attackTriggerRange && !InAnyLight(transform.position))
-            EnterAttacking();
+        // After stalking a while, DECIDE: attack, or give up and retreat. Early nights it almost always
+        // retreats (low NightAttackChance) and decides rarely (long DecisionInterval); later nights it
+        // attacks more AND decides more often — so attacks-per-night ramp up over the game.
+        decisionTimer -= Time.deltaTime;
+        if (decisionTimer <= 0f)
+        {
+            if (Random.value < NightAttackChance) EnterAttacking();
+            else EnterRetreat();   // Stalking -> Retreat: slink off and lie low before trying again
+        }
     }
 
     void EnterAttacking()
@@ -341,15 +386,15 @@ public class EnemyAI : MonoBehaviour
         // Contact kills.
         if (dist <= killDistance) { Kill(); return; }
 
-        // Shoved into campfire/lantern light (but NOT the flashlight, which would have retreated
-        // us already) -> slip back to the dark instead of breaking off.
-        if (InAnyLight(transform.position))
+        // The CAMPFIRE is the ONE light it won't push into (a hard barrier) — slip back to the dark.
+        // Torches / flashlight / lanterns do NOT block it; they only slow it (below).
+        if (LightZone.AnyBarrierCovers(transform.position))
         {
             EnterReposition();
             return;
         }
 
-        // The player reached safety (a light zone). If they wait it out, give up and re-stalk.
+        // The player reached the campfire safe zone. If they wait it out there, give up and re-stalk.
         if (PlayerSafe())
         {
             playerSafeTimer += Time.deltaTime;
@@ -357,8 +402,24 @@ public class EnemyAI : MonoBehaviour
         }
         else playerSafeTimer = 0f;
 
-        // Close in. Speed is throttled by how lit our own ground is (dark = fast).
-        float speed = attackSpeed * (InAnyLight(transform.position) ? lightSlowFactor : 1f);
+        // "Run away" escape: if the player has opened up enough distance, the attack ENDS. Whether it
+        // drops back to Stalking or Repositions depends on how much light is on the Mimic right now —
+        // more light -> more likely it recoils to the dark (Reposition) rather than calmly re-stalking.
+        if (dist >= escapeDistance)
+        {
+            float lightOnMe = LightZone.MaxSlowAt(transform.position);
+            if (Random.value < lightOnMe) EnterReposition();
+            else EnterStalking();
+            return;
+        }
+
+        // Close in. Light SLOWS it linearly with the light's strength (LightZone.slowStrength), and that
+        // slow is itself weakened by aggression — so a torch buys you time to run, and a shone flashlight
+        // (strong light) nearly stalls it, but a frenzied Mimic pushes through. The slow is temporary:
+        // it's recomputed from the current light every frame, so stepping out of the light restores speed.
+        float rawSlow = LightZone.MaxSlowAt(transform.position);
+        float effSlow = Mathf.Clamp01(rawSlow * Mathf.Lerp(1f, aggressionSlowFloor, Mathf.Clamp01(aggression)));
+        float speed = attackSpeed * (1f - effSlow);
         Move(FlatDir(target.position - transform.position), speed);
     }
 
@@ -494,6 +555,21 @@ public class EnemyAI : MonoBehaviour
     // stalk = it transitions into Stalking and Attacking more often.
     float AggressionTimeScale => Mathf.Lerp(1.8f, 0.3f, Mathf.Clamp01(aggression));
 
+    // Which night it is (1-based). Reads the day/night clock's counter; 1 if there's no clock.
+    int CurrentNight => dayNight != null ? Mathf.Max(1, dayNight.NightNumber) : 1;
+
+    // Chance a stalking decision is an ATTACK this night: night-1 base + per-night step, capped.
+    // Night 1 ≈ 0.15 (mostly retreats), rising 0.15/night to the cap (default 0.90).
+    float NightAttackChance =>
+        Mathf.Clamp(attackChanceNight1 + attackChancePerNight * (CurrentNight - 1), 0f, attackChanceMax);
+
+    // Seconds it stalks before each decision: long when calm (night 1), short when frenzied. The
+    // shorter this is, the MORE decisions per night, so attacks-per-night rise with aggression too.
+    float DecisionInterval => Mathf.Lerp(decisionIntervalMax, decisionIntervalMin, Mathf.Clamp01(aggression));
+
+    // Chance of a rustle on each stalk-teleport, rising linearly with aggression (noisier late game).
+    float RustleChance => Mathf.Lerp(rustleChanceMin, rustleChanceMax, Mathf.Clamp01(aggression));
+
     // Full flee speed = attack speed × the retreat multiplier.
     float RetreatSpeed() => attackSpeed * retreatSpeedMultiplier;
 
@@ -526,8 +602,10 @@ public class EnemyAI : MonoBehaviour
     // Inside ANY safe light zone (campfire / lantern / flashlight).
     bool InAnyLight(Vector3 point) => LightZone.AnyCovers(point);
 
-    // The player is currently safe in the light (reached a fire/lantern/flashlight zone).
-    bool PlayerSafe() => LightZone.AnyCovers(target.position);
+    // The player has reached a true SAFE ZONE — the campfire (hard-barrier) light. Holding a torch
+    // only SLOWS the Mimic; it doesn't make you 'safe' enough for it to give up the attack, so near a
+    // torch you still have to actually lose it (run away / shine the flashlight), not just stand there.
+    bool PlayerSafe() => LightZone.AnyBarrierCovers(target.position);
 
     LightZone NearestCoveringZone(Vector3 point)
     {

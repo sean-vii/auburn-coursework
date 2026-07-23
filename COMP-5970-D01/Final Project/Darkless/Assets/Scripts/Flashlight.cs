@@ -53,6 +53,11 @@ public class Flashlight : MonoBehaviour
     [Tooltip("Extra battery seconds spent to fire one burst (on top of the normal drain).")]
     public float burstBatteryCost = 10f;
 
+    [Header("One light at a time")]
+    [Tooltip("The player's Torch. Turning the flashlight ON puts the torch away (you re-equip it from " +
+             "your pack). Auto-found if empty.")]
+    public Torch torch;
+
     [Header("Input (new Input System keys)")]
     public Key toggleKey = Key.F;
     public Key burstKey = Key.G;
@@ -73,6 +78,7 @@ public class Flashlight : MonoBehaviour
     void Awake()
     {
         zone = GetComponent<LightZone>();
+        if (torch == null) torch = FindFirstObjectByType<Torch>();
         currentBattery = Mathf.Clamp(startingBatterySeconds, 0f, maxBatterySeconds);
         ApplyState();
     }
@@ -107,6 +113,7 @@ public class Flashlight : MonoBehaviour
     {
         if (IsDead) return;   // dead battery: nothing happens
         isOn = !isOn;
+        if (isOn) StowTorch();   // one light at a time — the flashlight always wins
     }
 
     // Fire an emergency burst: force the light on, pay the battery cost, widen the safe radius.
@@ -114,8 +121,23 @@ public class Flashlight : MonoBehaviour
     {
         if (IsDead) return;
         isOn = true;
+        StowTorch();
         currentBattery = Mathf.Max(0f, currentBattery - burstBatteryCost);
         burstTimer = burstDuration;
+    }
+
+    // Put the currently-held torch away (its remaining life is kept so it can be re-equipped).
+    void StowTorch()
+    {
+        if (torch == null) torch = FindFirstObjectByType<Torch>();
+        if (torch != null) torch.Unequip();
+    }
+
+    // Put the flashlight away — called when a torch is equipped (one light at a time).
+    public void ForceOff()
+    {
+        isOn = false;
+        ApplyState();
     }
 
     // Pushes the current state onto the LightZone radius and the visible beam.

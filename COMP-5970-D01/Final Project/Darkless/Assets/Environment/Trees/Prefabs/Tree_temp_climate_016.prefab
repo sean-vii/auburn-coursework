@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 3144558812870436063}
   - component: {fileID: 5752518663059350214}
   - component: {fileID: 3213731516371656366}
+  - component: {fileID: 1250390602826519946}
   m_Layer: 0
   m_Name: Tree_temp_climate_016
   m_TagString: Untagged
@@ -90,3 +91,26 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!136 &1250390602826519946
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2371258698099539557}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.6294971
+  m_Height: 5.360882
+  m_Direction: 1
+  m_Center: {x: 0.36117363, y: 2.5624847, z: -0.97877955}

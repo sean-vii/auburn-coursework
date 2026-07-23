@@ -18,15 +18,18 @@ public class SearchSpot : MonoBehaviour, IInteractable
              "animation (PickFruit_Standing). Empty = none.")]
     public string animationTrigger = "PickStanding";
 
-    [Header("Reward (placeholder until Phase 5 keys)")]
-    [Tooltip("Item granted when the search finishes. Point it at wood/fruit to test now; swap to a " +
-             "Key later. Leave empty to grant nothing (just the search action).")]
+    [Header("Reward")]
+    [Tooltip("Item granted when this search yields the key (the CarKey). Set by the spawner.")]
     public ItemDefinition rewardItem;
     public int rewardAmount = 1;
     [Range(0f, 1f)]
-    [Tooltip("Chance (0..1) that a completed search actually PRODUCES the reward item. 0.7 = 70% of " +
-             "searches yield the item, the other 30% turn up nothing — so searching is a gamble.")]
+    [Tooltip("Legacy random produce chance — used ONLY when there is no coordinator (a hand-placed " +
+             "SearchSpot with no SearchSpotSpawner). With a coordinator, the spawner's key GUARANTEE " +
+             "decides the outcome and this is ignored.")]
     public float produceChance = 0.7f;
+    [Tooltip("The spawner that coordinates the guaranteed-key logic. Assigned automatically when the " +
+             "spot is spawned. If null, this spot falls back to the random produceChance above.")]
+    public SearchSpotSpawner coordinator;
 
     [Header("When")]
     [Tooltip("Keys are only findable at NIGHT (GDD §13). When on, this spot can't be searched during " +
@@ -95,16 +98,24 @@ public class SearchSpot : MonoBehaviour, IInteractable
 
         string message = "Searched — nothing here";
 
-        // A search only PRODUCES an item some of the time (produceChance) — the rest turn up empty, so
-        // searching is a gamble. Keys are weightless, so when one is produced it always fits.
-        bool produces = rewardItem != null && rewardAmount > 0 && Random.value <= produceChance;
-        if (produces)
+        // What does THIS search yield? With a coordinator (the normal case), the spawner decides WHICH
+        // item — the correct car key on the guaranteed search, a random red-herring key on some others
+        // (the multi-key twist), or null for "nothing". Without a coordinator (a lone hand-placed spot),
+        // fall back to the random produceChance granting this spot's own rewardItem. Keys are weightless.
+        ItemDefinition granted;
+        if (coordinator != null)
+            granted = coordinator.ResolveSearchReward();
+        else
+            granted = (rewardItem != null && rewardAmount > 0 && Random.value <= produceChance)
+                ? rewardItem : null;
+
+        if (granted != null && rewardAmount > 0)
         {
             Backpack pack = interactor != null ? interactor.GetComponentInParent<Backpack>() : null;
-            int added = pack != null ? pack.TryAdd(rewardItem, rewardAmount) : 0;
+            int added = pack != null ? pack.TryAdd(granted, rewardAmount) : 0;
             message = added > 0
-                ? "Found " + rewardItem.displayName
-                : "Found " + rewardItem.displayName + " — but the pack is full!";
+                ? "Found " + granted.displayName + "!"
+                : "Found " + granted.displayName + " — but the pack is full!";
         }
 
         if (hideWhenSearched)

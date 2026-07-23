@@ -15,12 +15,41 @@ public class Backpack : MonoBehaviour
              "core 'fuel vs. food' budget. Weight never slows the player.")]
     public float weightCapacity = 30f;
 
+    // One entry in the starting-items list.
+    [System.Serializable]
+    public struct StartingStack
+    {
+        public ItemDefinition item;
+        public int count;
+    }
+
+    [Header("Starting items (testing / debug)")]
+    [Tooltip("Items the pack spawns with. Added DIRECTLY at Start, bypassing the weight limit, so you " +
+             "can preload test gear even past capacity. Leave empty for a normal empty pack.")]
+    public StartingStack[] startingItems;
+
     // What's in the pack right now: how many of each item type. A Dictionary is a fast lookup from
     // an item definition to its count.
     readonly Dictionary<ItemDefinition, int> contents = new Dictionary<ItemDefinition, int>();
 
     // Fired whenever the contents change, so the UI (or anything else) can refresh.
     public event System.Action Changed;
+
+    void Start()
+    {
+        // Preload any starting/debug items straight into the pack (past the weight cap on purpose).
+        bool added = false;
+        if (startingItems != null)
+        {
+            foreach (var s in startingItems)
+            {
+                if (s.item == null || s.count <= 0) continue;
+                contents[s.item] = Count(s.item) + s.count;
+                added = true;
+            }
+        }
+        if (added) Changed?.Invoke();
+    }
 
     // Total weight of everything currently in the pack (keys excluded).
     public float CurrentWeight

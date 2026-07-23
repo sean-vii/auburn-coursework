@@ -14,6 +14,18 @@ public class LightZone : MonoBehaviour
              "yellow wire sphere shown when this object is selected.")]
     public float radius = 6f;
 
+    [Header("Effect on the Mimic")]
+    [Tooltip("How strongly this light SLOWS the Mimic while it's inside (0 = none, 1 = fully stopped). " +
+             "This is the light's 'intensity' as far as the monster is concerned — brighter tools slow " +
+             "it more. The flashlight is strong, a torch medium. The slow is temporary (only while the " +
+             "Mimic is in the light) and is itself weakened by the monster's aggression.")]
+    [Range(0f, 1f)] public float slowStrength = 0.5f;
+
+    [Tooltip("HARD BARRIER: the Mimic will NOT push into this light while attacking — it repositions " +
+             "back to the dark instead. Reserve this for the CAMPFIRE (the one true safe zone). Leave " +
+             "off for torches / flashlight / lanterns, which only SLOW it.")]
+    public bool blocksMimic = false;
+
     // Every LightZone that is currently enabled. 'static' means one shared list for all of them.
     public static readonly List<LightZone> Active = new List<LightZone>();
 
@@ -33,6 +45,32 @@ public class LightZone : MonoBehaviour
         for (int i = 0; i < Active.Count; i++)
             if (Active[i] != null && Active[i].Covers(point))
                 return true;
+        return false;
+    }
+
+    // The strongest slow acting on a point (max slowStrength among the zones covering it), 0..1. This
+    // is the "how bright is the light on the Mimic here" value that drives its attack slowdown.
+    public static float MaxSlowAt(Vector3 point)
+    {
+        float max = 0f;
+        for (int i = 0; i < Active.Count; i++)
+        {
+            var z = Active[i];
+            if (z != null && z.Covers(point) && z.slowStrength > max)
+                max = z.slowStrength;
+        }
+        return max;
+    }
+
+    // Is the point inside a HARD-BARRIER zone (the campfire) — the one light the Mimic won't enter?
+    public static bool AnyBarrierCovers(Vector3 point)
+    {
+        for (int i = 0; i < Active.Count; i++)
+        {
+            var z = Active[i];
+            if (z != null && z.blocksMimic && z.Covers(point))
+                return true;
+        }
         return false;
     }
 

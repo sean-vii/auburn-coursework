@@ -17,5 +17,5 @@ MonoBehaviour:
   icon: {fileID: 0}
   weightPerUnit: 5
   category: 1
-  fuelValue: 10
+  fuelValue: 90
   staminaValue: 40

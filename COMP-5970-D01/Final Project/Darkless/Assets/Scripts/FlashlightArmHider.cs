@@ -17,6 +17,10 @@ public class FlashlightArmHider : MonoBehaviour
     [Tooltip("The flashlight to watch. Leave empty to auto-find the scene's flashlight.")]
     public Flashlight flashlight;
 
+    [Tooltip("The torch to watch too. The arm hides while EITHER the flashlight is on OR the torch is " +
+             "lit (both are held in the right hand). Leave empty to auto-find the scene's torch.")]
+    public Torch torch;
+
     [Tooltip("The player's Humanoid Animator. Leave empty to auto-find on this object or a parent.")]
     public Animator animator;
 
@@ -32,6 +36,7 @@ public class FlashlightArmHider : MonoBehaviour
     void Start()
     {
         if (flashlight == null) flashlight = FindFirstObjectByType<Flashlight>();
+        if (torch == null) torch = FindFirstObjectByType<Torch>();
         if (animator == null) animator = GetComponentInParent<Animator>();
 
         // Default target: the right upper arm bone, resolved from the Humanoid rig.
@@ -58,9 +63,9 @@ public class FlashlightArmHider : MonoBehaviour
     {
         if (bonesToHide == null || bonesToHide.Length == 0 || originalScales == null) return;
 
-        // Hide exactly when the flashlight model is out (on and not dead) — matches when the
-        // Flashlight shows its held model.
-        bool hide = flashlight != null && flashlight.isOn && flashlight.Battery01 > 0f;
+        // Hide while EITHER hand light is out: the flashlight is on (and not dead) OR the torch is lit.
+        bool hide = (flashlight != null && flashlight.isOn && flashlight.Battery01 > 0f)
+                 || (torch != null && torch.IsLit);
 
         for (int i = 0; i < bonesToHide.Length; i++)
         {

@@ -17,6 +17,13 @@ public class PlayerInteraction : MonoBehaviour
     [Header("Detection")]
     [Tooltip("How close the player must be for something to be interactable.")]
     public float interactionRange = 3f;
+    [Tooltip("Require the player to be LOOKING at the thing (within Max Look Angle of where the camera " +
+             "is aimed), not just near it. When several are in view, the one most centered on your aim " +
+             "wins. Turn off to fall back to 'nearest in range regardless of facing'.")]
+    public bool requireLookingAt = true;
+    [Tooltip("Max angle (degrees) between the camera's aim and the direction to the thing for it to " +
+             "count as 'looked at'. Smaller = you must aim more precisely at it.")]
+    public float maxLookAngle = 30f;
     [Tooltip("The prompt text (starts disabled). Shows e.g. 'Hold E to search'.")]
     public TMP_Text promptText;
 
@@ -41,6 +48,7 @@ public class PlayerInteraction : MonoBehaviour
     // The interactable we're currently near (or null).
     IInteractable current;
     Animator animator;
+    Camera cam;                   // the first-person camera, for the "looking at it" check
     InputAction interactAction;   // the Interact (E) action, so we can read the HELD state
     bool isInteracting;           // true while a TAP interaction's coroutine is running
 
@@ -83,13 +91,17 @@ public class PlayerInteraction : MonoBehaviour
         UpdatePrompt();
     }
 
-    // Finds the closest usable interactable within range.
+    // Finds the best usable interactable: in range AND (if required) the one you're LOOKING at.
     void FindNearby()
     {
+        if (cam == null) cam = Camera.main;   // the first-person camera; may spawn after us
+
         Collider[] hits = Physics.OverlapSphere(transform.position, interactionRange);
 
-        IInteractable closest = null;
-        float closestDist = Mathf.Infinity;
+        IInteractable best = null;
+        // Lower score = better. When "looking at" is required the score is the ANGLE off your aim (so
+        // the most-centered thing wins); otherwise it's plain distance (nearest wins).
+        float bestScore = Mathf.Infinity;
 
         foreach (Collider hit in hits)
         {
@@ -98,19 +110,37 @@ public class PlayerInteraction : MonoBehaviour
             if (it == null || !it.CanInteract)
                 continue;
 
-            float dist = Vector3.Distance(transform.position, it.Position);
-            if (dist < closestDist)
+            // Must be genuinely within range (OverlapSphere is bounds-based; re-check the real point).
+            if (Vector3.Distance(transform.position, it.Position) > interactionRange)
+                continue;
+
+            float score;
+            if (requireLookingAt && cam != null)
             {
-                closestDist = dist;
-                closest = it;
+                // You must be aiming roughly AT it: the angle between the camera's forward and the
+                // direction to the thing must be within maxLookAngle.
+                Vector3 toIt = it.Position - cam.transform.position;
+                if (toIt.sqrMagnitude < 1e-4f) score = 0f;   // basically on top of it
+                else
+                {
+                    float ang = Vector3.Angle(cam.transform.forward, toIt);
+                    if (ang > maxLookAngle) continue;         // not looking at it -> ignore
+                    score = ang;                              // prefer whatever is most centered
+                }
             }
+            else
+            {
+                score = Vector3.Distance(transform.position, it.Position); // nearest
+            }
+
+            if (score < bestScore) { bestScore = score; best = it; }
         }
 
-        // If we moved off the thing we were searching, cancel the in-progress hold.
-        if (!ReferenceEquals(closest, current))
+        // If we moved / looked off the thing we were searching, cancel the in-progress hold.
+        if (!ReferenceEquals(best, current))
             CancelHold();
 
-        current = closest;
+        current = best;
     }
 
     // Advances a hold-to-search interaction while E is held on a Hold target.
@@ -216,6 +246,8 @@ public class PlayerInteraction : MonoBehaviour
     void Complete(IInteractable target)
     {
         InteractionResult result = target.Interact(gameObject);
+        // One SFX hook for EVERY interaction: a confirm on success, a deny buzz on failure.
+        if (result.success) Sfx.Confirm(); else Sfx.Deny();
         if (!string.IsNullOrEmpty(result.message))
         {
             overrideMessage = result.message;

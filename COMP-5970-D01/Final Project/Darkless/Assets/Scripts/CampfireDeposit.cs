@@ -1,15 +1,20 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// Lets the player walk up to the campfire and press E to dump their gathered WOOD into it as fuel.
-// This is the real replacement for the campfire's temporary "R to refuel" test key: now the actual
-// sticks and logs in the backpack feed the fire (each Fuel item adds its own fuelValue, so a log
-// is worth more than a stick). Put this on the campfire, next to the Campfire + LightZone.
+// Lets the player walk up to the campfire and press E to dump LOGS from the backpack into it as fuel.
+// (Sticks are NOT used here — they're reserved for crafting torches; only logs feed the fire.) Each
+// log adds its fuelValue in SECONDS of illumination, and logs are fed one at a time only until the
+// fire hits its 5-minute cap, so you never waste logs overfilling it.
+//
+// Put this on the campfire, next to the Campfire + LightZone.
 [RequireComponent(typeof(Campfire))]
 public class CampfireDeposit : MonoBehaviour, IInteractable
 {
     [Tooltip("Prompt shown when the player is near the fire.")]
     public string prompt = "Press E to feed the fire";
+    [Tooltip("Which items count as fire fuel. Assign the Log item. Leave EMPTY to accept any " +
+             "Fuel-category item (the old behaviour, which would also burn sticks).")]
+    public List<ItemDefinition> acceptedFuel = new List<ItemDefinition>();
 
     Campfire campfire;
 
@@ -26,31 +31,46 @@ public class CampfireDeposit : MonoBehaviour, IInteractable
     public bool CanInteract => true;
     public Vector3 Position => transform.position;
 
+    // Is this item allowed as fire fuel? Configured list wins; empty list = any Fuel-category item.
+    bool Accepts(ItemDefinition it)
+    {
+        if (it == null) return false;
+        if (acceptedFuel != null && acceptedFuel.Count > 0) return acceptedFuel.Contains(it);
+        return it.category == ItemCategory.Fuel;
+    }
+
     public InteractionResult Interact(GameObject interactor)
     {
         Backpack pack = interactor != null ? interactor.GetComponentInParent<Backpack>() : null;
         if (pack == null)
             return InteractionResult.Fail("No backpack");
 
-        // Collect every Fuel stack first (we can't remove from the pack while looping over it).
+        if (campfire.IsFull)
+            return InteractionResult.Fail("The fire is already roaring.");
+
+        // Snapshot the accepted fuel stacks (can't remove from the pack while looping over it).
         var fuelStacks = new List<KeyValuePair<ItemDefinition, int>>();
         foreach (var pair in pack.Items)
-            if (pair.Key != null && pair.Key.category == ItemCategory.Fuel && pair.Value > 0)
+            if (Accepts(pair.Key) && pair.Value > 0)
                 fuelStacks.Add(pair);
 
-        float totalFuel = 0f;
-        int woodUnits = 0;
+        // Feed logs ONE AT A TIME, stopping the moment the fire hits its cap so nothing is wasted.
+        int added = 0;
         foreach (var stack in fuelStacks)
         {
-            int removed = pack.Remove(stack.Key, stack.Value);
-            totalFuel += stack.Key.fuelValue * removed;
-            woodUnits += removed;
+            for (int i = 0; i < stack.Value; i++)
+            {
+                if (campfire.IsFull) break;
+                if (pack.Remove(stack.Key, 1) <= 0) break;
+                campfire.AddFuel(stack.Key.fuelValue);
+                added++;
+            }
+            if (campfire.IsFull) break;
         }
 
-        if (woodUnits <= 0)
-            return InteractionResult.Fail("No wood to add");
+        if (added <= 0)
+            return InteractionResult.Fail("No logs to add");
 
-        campfire.AddFuel(totalFuel);
-        return InteractionResult.Ok("Added " + woodUnits + " wood to the fire");
+        return InteractionResult.Ok("Added " + added + (added == 1 ? " log" : " logs") + " to the fire");
     }
 }

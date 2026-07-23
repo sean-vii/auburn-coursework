@@ -2,9 +2,11 @@ using UnityEngine;
 
 // What kind of item this is. It decides how the item is USED and whether it takes up pack weight:
 //   Food -> eaten for stamina (stored in the backpack, has weight)
-//   Fuel -> fed to the campfire / used to build a torch later (stored in the backpack, has weight)
+//   Fuel -> fed to the campfire / spent (as sticks) to craft a torch (stored in the pack, has weight)
 //   Key  -> tried at the car to win (rides weightless on a keyring, NOT in the weighted pack)
-public enum ItemCategory { Food, Fuel, Key }
+//   Tool -> equipped from the inventory (the crafted Torch). Stored in the pack, has weight.
+// NOTE: new values go at the END so existing saved 'category' ints (Food=0, Fuel=1, Key=2) stay valid.
+public enum ItemCategory { Food, Fuel, Key, Tool }
 
 // A data asset describing ONE type of item (an apple, a stick, a log, a key...). Create these via
 // right-click in the Project window -> Create -> Darkless -> Item. Because it's a ScriptableObject

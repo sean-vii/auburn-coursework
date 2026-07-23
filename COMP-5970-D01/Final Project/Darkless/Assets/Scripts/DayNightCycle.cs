@@ -11,14 +11,21 @@ public class DayNightCycle : MonoBehaviour
     public Light sun;
 
     [Header("Cycle length")]
-    [Tooltip("How many real seconds one full day + night takes. Use ~20 for testing, raise later.")]
-    public float fullDayLengthSeconds = 20f;
+    [Tooltip("How many real seconds one full day + night takes. 450 = 7.5 min (a 1-minute day + a " +
+             "6.5-minute night, given dayPortion below).")]
+    public float fullDayLengthSeconds = 450f;
 
     [Header("Day / night balance")]
-    [Tooltip("Fraction of the whole cycle that is daytime. Lower = longer, darker nights. " +
-             "0.4 means night is 60% of the cycle — good for a horror mood.")]
-    [Range(0.1f, 0.9f)]
-    public float dayPortion = 0.4f;
+    [Tooltip("Fraction of the whole cycle that is daytime. 0.1333 with a 450s cycle = a 60s day and a " +
+             "390s (6.5 min) night. Lower = longer, darker nights.")]
+    [Range(0.05f, 0.9f)]
+    public float dayPortion = 0.13333334f;
+
+    [Tooltip("Fraction of the DAY spent fading from full daylight down to dark at dusk (into night). " +
+             "The rest of the day is fully lit FROM THE START, so the game visibly begins in daytime " +
+             "instead of a dark dawn.")]
+    [Range(0.05f, 0.9f)]
+    public float duskFade = 0.35f;
 
     [Header("Sun intensity")]
     public float daySunIntensity = 1f;
@@ -50,14 +57,19 @@ public class DayNightCycle : MonoBehaviour
     public float nightFogDensity = 0.03f;
 
     [Header("Time of day")]
-    [Tooltip("0 = dawn. Rises to midday around dayPortion/2, dusk at dayPortion, then night " +
-             "until it loops back to 0. Starts near dawn so the player gets a full day to prep.")]
+    [Tooltip("0 = dawn (start of day). Rises to midday around dayPortion/2, dusk at dayPortion, then " +
+             "night until it loops back to 0. Starts at 0 so the game always BEGINS on a fresh, full day.")]
     [Range(0f, 1f)]
-    public float timeOfDay = 0.05f;
+    public float timeOfDay = 0f;
 
     // Read by DayNightMusic to decide which track to fade in.
     // First half of the cycle is day, second half is night.
     public bool IsNight { get; private set; }
+
+    // Which night it is (0 during the very first day, then 1, 2, 3… — bumped each time night falls).
+    // The Mimic's aggression ramp reads this: attacks get more frequent every night.
+    public int NightNumber { get; private set; }
+    bool wasNight;
 
     void Update()
     {
@@ -79,8 +91,12 @@ public class DayNightCycle : MonoBehaviour
         if (timeOfDay < dayPortion)
         {
             float dayPhase = timeOfDay / dayPortion;            // 0..1 across the daytime
-            sunAngle = dayPhase * 180f;                          // horizon → overhead → horizon
-            daylight = Mathf.Sin(dayPhase * Mathf.PI);           // smooth 0 → 1 → 0
+            sunAngle = 25f + dayPhase * 130f;                    // kept well above the horizon so day reads bright
+            // The day is FULLY LIT from its very start (so the game visibly BEGINS in daytime, not a dark
+            // dawn) and only fades down over its final 'duskFade' as it slides into night.
+            daylight = dayPhase < (1f - duskFade)
+                ? 1f
+                : 1f - (dayPhase - (1f - duskFade)) / Mathf.Max(0.0001f, duskFade);
         }
         else
         {
@@ -122,6 +138,9 @@ public class DayNightCycle : MonoBehaviour
         }
 
         // Simple day/night flag for other scripts to read: night starts once the day window ends.
-        IsNight = timeOfDay >= dayPortion;
+        bool nowNight = timeOfDay >= dayPortion;
+        if (nowNight && !wasNight) NightNumber++;   // rising edge: a new night has begun
+        wasNight = nowNight;
+        IsNight = nowNight;
     }
 }
