@@ -35,6 +35,8 @@ public class MainMenu : MonoBehaviour
     RectTransform root;
     PlayerInput playerInput;
     bool shown;
+    Camera playerCam;                                   // the player's Main Camera — turned OFF while the menu
+                                                        // is up so only the MenuCamera renders (no double-render)
     Transform uiRoot;                                   // the shared Canvas that holds all UI
     readonly System.Collections.Generic.List<GameObject> hidden = new System.Collections.Generic.List<GameObject>();
 
@@ -47,6 +49,7 @@ public class MainMenu : MonoBehaviour
             var mc = GameObject.Find("MenuCamera");
             if (mc != null) menuCamera = mc.GetComponent<Camera>();
         }
+        playerCam = Camera.main;   // the player's camera (MenuCamera is Untagged, so this is the game cam)
         Build();
         if (showAtStart) Show();
         else { Hide(); if (menuCamera != null) menuCamera.gameObject.SetActive(false); }
@@ -59,6 +62,7 @@ public class MainMenu : MonoBehaviour
         root.gameObject.SetActive(true);
         root.SetAsLastSibling();               // draw over the HUD
         if (menuCamera != null) menuCamera.gameObject.SetActive(true);
+        if (playerCam != null) playerCam.enabled = false;   // stop the game camera rendering (no double-render)
         ApplyPaused();
     }
 
@@ -110,6 +114,7 @@ public class MainMenu : MonoBehaviour
         Hide();
         RestoreGameplayUI();
         if (menuCamera != null) menuCamera.gameObject.SetActive(false);
+        if (playerCam != null) playerCam.enabled = true;    // hand rendering back to the game camera
         Time.timeScale = 1f;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;

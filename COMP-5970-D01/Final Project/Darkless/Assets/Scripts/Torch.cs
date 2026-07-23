@@ -17,14 +17,16 @@ public class Torch : MonoBehaviour
 {
     [Header("Lifespan (3 tiers x 13s = 39s)")]
     [Tooltip("Total seconds a torch stays lit before it's spent.")]
-    public float maxLife = 39f;
+    public float maxLife = 78f;
     [Tooltip("Brightness tiers the life is split into (the torch dims a step at each). 3 tiers over " +
              "39s = 13s per tier.")]
     [Range(1, 6)] public int tiers = 3;
 
     [Header("Safe light")]
-    [Tooltip("LightZone radius while lit at FULL brightness (top tier). Dims with each lower tier.")]
-    public float onRadius = 5f;
+    [Tooltip("LightZone radius while lit. This is the SAFE radius that keeps the darkness meter topped " +
+             "up — it stays CONSTANT while lit (like the flashlight), so a lit torch always protects you. " +
+             "Only the VISIBLE light (below) dims per tier.")]
+    public float onRadius = 7f;
 
     [Header("Fire VFX (Full Opaque Fire on the torch tip)")]
     [Tooltip("The VFX_FireController on the torch's flame. Driven on/off + dimmed per tier with the torch.")]
@@ -32,9 +34,9 @@ public class Torch : MonoBehaviour
     [Tooltip("Flame intensity at full brightness (scales down per tier).")]
     public float fireIntensity = 0.6f;
     [Tooltip("Point-light brightness at full brightness (scales down per tier).")]
-    public float lightIntensity = 22f;
+    public float lightIntensity = 45f;
     [Tooltip("Point-light reach at full brightness (scales down per tier).")]
-    public float lightRange = 9f;
+    public float lightRange = 16f;
 
     [Header("Held model")]
     [Tooltip("The visible torch mesh in the player's hand.")]
@@ -141,7 +143,10 @@ public class Torch : MonoBehaviour
         // Brightness fraction steps down a tier at a time (tier/tiers): e.g. 3/3, 2/3, 1/3.
         float f = lit ? (float)Tier / Mathf.Max(1, tiers) : 0f;
 
-        zone.radius = onRadius * f;
+        // SAFE radius stays at full whenever lit (like the flashlight) so it reliably keeps the darkness
+        // meter topped up — even at the last tier or when the camera-mounted torch swings as you look
+        // around. Only the VISIBLE light (VFX + point light below) dims per tier.
+        zone.radius = lit ? onRadius : 0f;
 
         if (fireVfx != null) fireVfx.SetFireIntensity(fireIntensity * f);
         if (fireLight != null)

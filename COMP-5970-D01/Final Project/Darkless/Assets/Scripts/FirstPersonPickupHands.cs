@@ -87,6 +87,7 @@ public class FirstPersonPickupHands : MonoBehaviour
     public List<ViewmodelFraming> framingOverrides = new List<ViewmodelFraming>();
 
     Flashlight flashlight;
+    Torch torch;
     Animator realAnimator;
     Vector3[] armOriginalScales;
     bool busyState;
@@ -118,6 +119,7 @@ public class FirstPersonPickupHands : MonoBehaviour
         // reflects the whole rig across screen-center. Auto-find the flashlight for the "hand full" check.
         if (mirrorRoot == null && viewmodel != null) mirrorRoot = viewmodel.transform.parent;
         flashlight = FindFirstObjectByType<Flashlight>();
+        torch = FindFirstObjectByType<Torch>();
 
         realAnimator = player != null ? player.GetComponent<Animator>() : null;
 
@@ -159,6 +161,7 @@ public class FirstPersonPickupHands : MonoBehaviour
     {
         if (rightHandOccupied) return true;
         if (flashlight != null && flashlight.isOn) return true;
+        if (torch != null && torch.IsLit) return true;   // a lit torch fills the right hand too
         foreach (var go in heldItemsToHide)
             if (go != null && go.activeInHierarchy) return true;
         return false;

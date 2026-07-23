@@ -65085,11 +65085,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 457671230112397505, guid: aa9300c048314dcd92786b6ab7919da4, type: 3}
       propertyPath: InitialModule.startSize.scalar
-      value: 2.1343813
+      value: 3.124948
       objectReference: {fileID: 0}
     - target: {fileID: 457671230112397505, guid: aa9300c048314dcd92786b6ab7919da4, type: 3}
       propertyPath: EmissionModule.rateOverTime.scalar
-      value: 2134.3806
+      value: 3124.9473
       objectReference: {fileID: 0}
     - target: {fileID: 457671230112397505, guid: aa9300c048314dcd92786b6ab7919da4, type: 3}
       propertyPath: InitialModule.startColor.maxColor.b
@@ -65169,11 +65169,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3248476463663495497, guid: aa9300c048314dcd92786b6ab7919da4, type: 3}
       propertyPath: InitialModule.startSize.scalar
-      value: 10.67191
+      value: 15.624745
       objectReference: {fileID: 0}
     - target: {fileID: 3248476463663495497, guid: aa9300c048314dcd92786b6ab7919da4, type: 3}
       propertyPath: EmissionModule.rateOverTime.scalar
-      value: 320.1572
+      value: 468.7422
       objectReference: {fileID: 0}
     - target: {fileID: 3248476463663495497, guid: aa9300c048314dcd92786b6ab7919da4, type: 3}
       propertyPath: InitialModule.startColor.maxColor.b
@@ -65189,11 +65189,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4665926127180379650, guid: aa9300c048314dcd92786b6ab7919da4, type: 3}
       propertyPath: InitialModule.startSize.scalar
-      value: 2.5826015
+      value: 3.7811873
       objectReference: {fileID: 0}
     - target: {fileID: 4665926127180379650, guid: aa9300c048314dcd92786b6ab7919da4, type: 3}
       propertyPath: EmissionModule.rateOverTime.scalar
-      value: 2582.6008
+      value: 3781.1865
       objectReference: {fileID: 0}
     - target: {fileID: 4665926127180379650, guid: aa9300c048314dcd92786b6ab7919da4, type: 3}
       propertyPath: InitialModule.startColor.maxColor.b
@@ -65209,11 +65209,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8213357944924456597, guid: aa9300c048314dcd92786b6ab7919da4, type: 3}
       propertyPath: InitialModule.startSize.scalar
-      value: 8.537525
+      value: 12.499792
       objectReference: {fileID: 0}
     - target: {fileID: 8213357944924456597, guid: aa9300c048314dcd92786b6ab7919da4, type: 3}
       propertyPath: EmissionModule.rateOverTime.scalar
-      value: 3201.5718
+      value: 4687.422
       objectReference: {fileID: 0}
     - target: {fileID: 8213357944924456597, guid: aa9300c048314dcd92786b6ab7919da4, type: 3}
       propertyPath: InitialModule.startColor.maxColor.b
@@ -85062,7 +85062,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1aa2a223831734c4e87b9e233743e644, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerStamina
-  maxStamina: 200
+  maxStamina: 150
   runDrainPerSecond: 4
   walkRegenPerSecond: 1.5
   exhaustedAt: 0
@@ -148833,7 +148833,7 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 4.95093e-10
+      scalar: 2.3099066e-11
       minScalar: 0.08
       maxCurve:
         serializedVersion: 2
@@ -149416,7 +149416,7 @@ ParticleSystem:
     rateOverTime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.00000018565994
+      scalar: 0.000000008662153
       minScalar: 10
       maxCurve:
         serializedVersion: 2
@@ -214793,13 +214793,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9809913c65cde334b827c8f2cdb1ddb5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Torch
-  maxLife: 39
+  maxLife: 78
   tiers: 3
-  onRadius: 5
+  onRadius: 7
   fireVfx: {fileID: 1686633713}
   fireIntensity: 0.6
-  lightIntensity: 22
-  lightRange: 9
+  lightIntensity: 45
+  lightRange: 16
   heldModel: {fileID: 2079357907}
   hideModelWhenOff: 1
   torchItem: {fileID: 11400000, guid: 51ef4626df2dbb64e803ad2912b8fe38, type: 2}
@@ -265063,7 +265063,7 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 1.2377326e-10
+      scalar: 5.7747665e-12
       minScalar: 0.03
       maxCurve:
         serializedVersion: 2
@@ -265646,7 +265646,7 @@ ParticleSystem:
     rateOverTime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.00000012377326
+      scalar: 0.0000000057747664
       minScalar: 10
       maxCurve:
         serializedVersion: 2
@@ -301456,7 +301456,7 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 6.188664e-10
+      scalar: 2.8873836e-11
       minScalar: 0.15
       maxCurve:
         serializedVersion: 2
@@ -302039,7 +302039,7 @@ ParticleSystem:
     rateOverTime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.00000001856599
+      scalar: 8.66215e-10
       minScalar: 10
       maxCurve:
         serializedVersion: 2
@@ -377076,7 +377076,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAI
   target: {fileID: 0}
   playerTag: Player
-  attackSpeed: 8.4
+  attackSpeed: 12
   retreatSpeedMultiplier: 5
   fleeSpeed: 16
   height: 0.8
@@ -418152,7 +418152,7 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 1.2377326e-10
+      scalar: 5.7747665e-12
       minScalar: 0.03
       maxCurve:
         serializedVersion: 2
@@ -418735,7 +418735,7 @@ ParticleSystem:
     rateOverTime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.00000012377326
+      scalar: 0.0000000057747664
       minScalar: 10
       maxCurve:
         serializedVersion: 2
@@ -444454,7 +444454,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4416926081852918490, guid: 64dce48905ffd9b4293e595fa6941544, type: 3}
       propertyPath: MoveSpeed
-      value: 4
+      value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 4416926081852918490, guid: 64dce48905ffd9b4293e595fa6941544, type: 3}
       propertyPath: BottomClamp
@@ -444462,7 +444462,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4416926081852918490, guid: 64dce48905ffd9b4293e595fa6941544, type: 3}
       propertyPath: SprintSpeed
-      value: 10.67
+      value: 18.67
       objectReference: {fileID: 0}
     - target: {fileID: 4416926081852918490, guid: 64dce48905ffd9b4293e595fa6941544, type: 3}
       propertyPath: GroundLayers.m_Bits
